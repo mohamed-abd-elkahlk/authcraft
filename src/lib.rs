@@ -22,6 +22,19 @@ pub enum Role {
     Guest,
 }
 
+#[derive(Debug, Deserialize, Serialize)]
+pub struct RegisterUserRequest {
+    pub username: String,
+    pub email: String,
+    pub password: String,
+}
+
+/// Request payload for user login
+#[derive(Debug, Deserialize, Serialize)]
+pub struct LoginUserRequest {
+    pub email: String,
+    pub password: String,
+}
 #[async_trait]
 pub trait UserRepository<U>: Send + Sync {
     async fn find_user_by_id(&self, id: &str) -> Result<User<U>, AuthError>;

@@ -6,7 +6,7 @@ use async_trait::*;
 use error::AuthError;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub struct User<U = (), R = Role> {
     pub id: String,
     pub username: String,

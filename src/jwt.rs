@@ -11,7 +11,7 @@ pub struct Claims<C> {
     pub iat: usize,
     pub extra_data: Option<C>,
 }
-
+#[derive(Debug, Clone)]
 pub struct JwtConfig {
     pub secret: String,
     pub expiration_days: i64,

@@ -37,6 +37,7 @@ pub struct LoginUserRequest {
 }
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub struct UpdateUser<U = ()> {
+    pub id: String,
     pub username: Option<String>,
     pub email: Option<String>,
     pub password: Option<String>,

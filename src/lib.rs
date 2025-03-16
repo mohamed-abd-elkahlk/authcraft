@@ -4,15 +4,16 @@ pub mod jwt;
 pub mod security;
 use async_trait::*;
 use error::AuthError;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone)]
-pub struct User<U, R = Role> {
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct User<U = (), R = Role> {
     pub id: String,
     pub username: String,
     pub email: String,
     pub password_hash: String,
-    pub role: Option<R>,
-    pub extra_data: Option<U>,
+    pub role: R,
+    pub data: Option<U>,
 }
 #[derive(Debug, Clone, PartialEq)]
 pub enum Role {

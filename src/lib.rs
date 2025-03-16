@@ -15,7 +15,7 @@ pub struct User<U = (), R = Role> {
     pub role: R,
     pub data: Option<U>,
 }
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub enum Role {
     Admin,
     User,

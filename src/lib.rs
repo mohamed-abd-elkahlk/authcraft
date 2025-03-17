@@ -12,6 +12,7 @@ use serde::{Deserialize, Serialize};
 pub struct User<U = (), R = Role> {
     pub id: String,
     pub username: String,
+    pub is_varfied: bool,
     pub email: String,
     pub password_hash: String,
     pub role: R,
@@ -63,5 +64,5 @@ pub trait UserRepository<U>: Send + Sync {
         token: &str,
         jwt: JwtConfig,
     ) -> Result<(Claims<U>, User<U>), AuthError>;
-    async fn mark_email_as_verified(&self, user_id: &str) -> Result<(), AuthError>;
+    async fn mark_user_as_verified(&self, user_id: &str) -> Result<(), AuthError>;
 }

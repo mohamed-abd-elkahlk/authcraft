@@ -5,7 +5,7 @@ pub mod jwt;
 pub mod security;
 use async_trait::*;
 use error::AuthError;
-use jwt::JwtConfig;
+use jwt::{Claims, JwtConfig};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
@@ -58,5 +58,10 @@ pub trait UserRepository<U>: Send + Sync {
         user_id: &str,
         jwt: JwtConfig,
     ) -> Result<(String, User<U>), AuthError>;
-    async fn verify_email(&self, token: &str, jwt: JwtConfig) -> Result<(), AuthError>;
+    async fn verify_email(
+        &self,
+        token: &str,
+        jwt: JwtConfig,
+    ) -> Result<(Claims<U>, User<U>), AuthError>;
+    async fn mark_email_as_verified(&self, user_id: &str) -> Result<(), AuthError>;
 }

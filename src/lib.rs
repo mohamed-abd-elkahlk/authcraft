@@ -1,4 +1,4 @@
-mod email;
+pub mod email;
 #[allow(unused)]
 pub mod error;
 pub mod jwt;

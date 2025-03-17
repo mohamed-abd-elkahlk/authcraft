@@ -1,10 +1,9 @@
-#[allow(unused)]
 use lettre::{
     AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
     message::{MultiPart, SinglePart, header},
     transport::smtp::authentication::Credentials,
 };
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use tera::{Context, Tera};
 
 // Configuration for the email service

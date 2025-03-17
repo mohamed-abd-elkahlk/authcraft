@@ -22,7 +22,6 @@ pub enum AuthError {
     TooManySessions(String),
 
     EmailTaken(String),
-    InvalidEmail(String),
     InvalidUsername(String),
     RegistrationDisabled(String),
 
@@ -63,7 +62,6 @@ impl fmt::Display for AuthError {
             AuthError::SessionNotFound(msg) => write!(f, "Session not found: {}", msg),
             AuthError::TooManySessions(msg) => write!(f, "Too many active sessions: {}", msg),
             AuthError::EmailTaken(msg) => write!(f, "Email is already taken: {}", msg),
-            AuthError::InvalidEmail(msg) => write!(f, "Invalid email address: {}", msg),
             AuthError::InvalidUsername(msg) => write!(f, "Invalid username: {}", msg),
             AuthError::RegistrationDisabled(msg) => write!(f, "Registration is disabled: {}", msg),
             AuthError::BruteForceAttempt(msg) => write!(f, "Brute force attempt detected: {}", msg),

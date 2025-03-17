@@ -7,6 +7,8 @@ use serde::Serialize;
 use tera::{Context, Tera};
 
 // Configuration for the email service
+
+#[derive(Debug, Clone)]
 pub struct EmailConfig {
     pub smtp_server: String,
     pub smtp_username: String,
@@ -15,6 +17,8 @@ pub struct EmailConfig {
     pub sender_name: String,
 }
 // Email service that handles template rendering and sending
+
+#[derive(Debug, Clone)]
 pub struct EmailService {
     mailer: AsyncSmtpTransport<Tokio1Executor>,
     templates: Tera,

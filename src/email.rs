@@ -121,4 +121,36 @@ impl EmailService {
         )
         .await
     }
+    // Method to send a custom email without using predefined templates
+    pub async fn send_custom_email(
+        &self,
+        recipient_email: &str,
+        recipient_name: &str,
+        subject: &str,
+        plain_text: &str,
+        html_content: &str,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        // Build email message
+        let email = Message::builder()
+            .from(format!("{} <{}>", self.sender_name, self.sender_email).parse()?)
+            .to(format!("{} <{}>", recipient_name, recipient_email).parse()?)
+            .subject(subject)
+            .multipart(
+                MultiPart::alternative()
+                    .singlepart(
+                        SinglePart::builder()
+                            .header(header::ContentType::TEXT_PLAIN)
+                            .body(plain_text.to_string()),
+                    )
+                    .singlepart(
+                        SinglePart::builder()
+                            .header(header::ContentType::TEXT_HTML)
+                            .body(html_content.to_string()),
+                    ),
+            )?;
+
+        // Send the email
+        self.mailer.send(email).await?;
+        Ok(())
+    }
 }

@@ -11,6 +11,7 @@ pub fn hash_password(password: &str) -> Result<String, AuthError> {
 }
 
 pub fn verify_password(password: &str, hash: &str) -> Result<bool, AuthError> {
-    let verified = verify(password, hash).map_err(|_| AuthError::InvalidCredentials)?;
+    let verified =
+        verify(password, hash).map_err(|e| AuthError::InvalidCredentials(e.to_string()))?;
     Ok(verified)
 }

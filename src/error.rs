@@ -1,87 +1,90 @@
+use std::fmt;
+
 #[derive(Debug)]
 pub enum AuthError {
-    // Common authentication errors
-    UserNotFound,
-    InvalidCredentials,
-    TokenExpired,
-    InvalidToken,
-    Unauthorized,
-    AccountLocked,
-    AccountDisabled,
-    PasswordTooWeak,
-    PasswordResetRequired,
+    UserNotFound(String),
+    InvalidCredentials(String),
+    TokenExpired(String),
+    InvalidToken(String),
+    Unauthorized(String),
+    AccountLocked(String),
+    AccountDisabled(String),
+    PasswordTooWeak(String),
+    PasswordResetRequired(String),
 
-    // Token-related errors
-    TokenNotProvided,
-    TokenCreationFailed,
-    TokenVerificationFailed,
-    TokenRevoked,
+    TokenNotProvided(String),
+    TokenCreationFailed(String),
+    TokenVerificationFailed(String),
+    TokenRevoked(String),
 
-    // Session-related errors
-    SessionExpired,
-    SessionNotFound,
-    TooManySessions,
+    SessionExpired(String),
+    SessionNotFound(String),
+    TooManySessions(String),
 
-    // Registration and account management errors
-    EmailTaken,
-    InvalidEmail,
-    InvalidUsername,
-    RegistrationDisabled,
+    EmailTaken(String),
+    InvalidEmail(String),
+    InvalidUsername(String),
+    RegistrationDisabled(String),
 
-    // Security-related errors
-    BruteForceAttempt,
-    SuspiciousActivity,
-    TwoFactorAuthRequired,
-    TwoFactorAuthFailed,
+    BruteForceAttempt(String),
+    SuspiciousActivity(String),
+    TwoFactorAuthRequired(String),
+    TwoFactorAuthFailed(String),
 
-    // System and configuration errors
-    DatabaseError,
-    ConfigurationError,
-    InternalServerError,
+    DatabaseError(String),
+    ConfigurationError(String),
+    InternalServerError(String),
     HashingError(String),
 
-    // Custom errors
     CustomError(String),
-    RateLimitExceeded,
-    ThirdPartyServiceError,
+    RateLimitExceeded(String),
+    ThirdPartyServiceError(String),
 }
-
-use std::fmt;
 
 impl fmt::Display for AuthError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            AuthError::UserNotFound => write!(f, "User not found"),
-            AuthError::InvalidCredentials => write!(f, "Invalid credentials"),
-            AuthError::TokenExpired => write!(f, "Token expired"),
-            AuthError::InvalidToken => write!(f, "Invalid token"),
-            AuthError::Unauthorized => write!(f, "Unauthorized"),
-            AuthError::AccountLocked => write!(f, "Account locked"),
-            AuthError::AccountDisabled => write!(f, "Account disabled"),
-            AuthError::PasswordTooWeak => write!(f, "Password is too weak"),
-            AuthError::PasswordResetRequired => write!(f, "Password reset required"),
-            AuthError::TokenNotProvided => write!(f, "Token not provided"),
-            AuthError::TokenCreationFailed => write!(f, "Token creation failed"),
-            AuthError::TokenVerificationFailed => write!(f, "Token verification failed"),
-            AuthError::TokenRevoked => write!(f, "Token revoked"),
-            AuthError::SessionExpired => write!(f, "Session expired"),
-            AuthError::SessionNotFound => write!(f, "Session not found"),
-            AuthError::TooManySessions => write!(f, "Too many active sessions"),
-            AuthError::EmailTaken => write!(f, "Email is already taken"),
-            AuthError::InvalidEmail => write!(f, "Invalid email address"),
-            AuthError::InvalidUsername => write!(f, "Invalid username"),
-            AuthError::RegistrationDisabled => write!(f, "Registration is disabled"),
-            AuthError::BruteForceAttempt => write!(f, "Brute force attempt detected"),
-            AuthError::SuspiciousActivity => write!(f, "Suspicious activity detected"),
-            AuthError::TwoFactorAuthRequired => write!(f, "Two-factor authentication required"),
-            AuthError::TwoFactorAuthFailed => write!(f, "Two-factor authentication failed"),
-            AuthError::DatabaseError => write!(f, "Database error"),
-            AuthError::ConfigurationError => write!(f, "Configuration error"),
-            AuthError::InternalServerError => write!(f, "Internal server error"),
-            AuthError::CustomError(msg) => write!(f, "Custom error: {}", msg),
+            AuthError::UserNotFound(msg) => write!(f, "User not found: {}", msg),
+            AuthError::InvalidCredentials(msg) => write!(f, "Invalid credentials: {}", msg),
+            AuthError::TokenExpired(msg) => write!(f, "Token expired: {}", msg),
+            AuthError::InvalidToken(msg) => write!(f, "Invalid token: {}", msg),
+            AuthError::Unauthorized(msg) => write!(f, "Unauthorized: {}", msg),
+            AuthError::AccountLocked(msg) => write!(f, "Account locked: {}", msg),
+            AuthError::AccountDisabled(msg) => write!(f, "Account disabled: {}", msg),
+            AuthError::PasswordTooWeak(msg) => write!(f, "Password is too weak: {}", msg),
+            AuthError::PasswordResetRequired(msg) => write!(f, "Password reset required: {}", msg),
+            AuthError::TokenNotProvided(msg) => write!(f, "Token not provided: {}", msg),
+            AuthError::TokenCreationFailed(msg) => write!(f, "Token creation failed: {}", msg),
+            AuthError::TokenVerificationFailed(msg) => {
+                write!(f, "Token verification failed: {}", msg)
+            }
+            AuthError::TokenRevoked(msg) => write!(f, "Token revoked: {}", msg),
+            AuthError::SessionExpired(msg) => write!(f, "Session expired: {}", msg),
+            AuthError::SessionNotFound(msg) => write!(f, "Session not found: {}", msg),
+            AuthError::TooManySessions(msg) => write!(f, "Too many active sessions: {}", msg),
+            AuthError::EmailTaken(msg) => write!(f, "Email is already taken: {}", msg),
+            AuthError::InvalidEmail(msg) => write!(f, "Invalid email address: {}", msg),
+            AuthError::InvalidUsername(msg) => write!(f, "Invalid username: {}", msg),
+            AuthError::RegistrationDisabled(msg) => write!(f, "Registration is disabled: {}", msg),
+            AuthError::BruteForceAttempt(msg) => write!(f, "Brute force attempt detected: {}", msg),
+            AuthError::SuspiciousActivity(msg) => {
+                write!(f, "Suspicious activity detected: {}", msg)
+            }
+            AuthError::TwoFactorAuthRequired(msg) => {
+                write!(f, "Two-factor authentication required: {}", msg)
+            }
+            AuthError::TwoFactorAuthFailed(msg) => {
+                write!(f, "Two-factor authentication failed: {}", msg)
+            }
+            AuthError::DatabaseError(msg) => write!(f, "Database error: {}", msg),
+            AuthError::ConfigurationError(msg) => write!(f, "Configuration error: {}", msg),
+            AuthError::InternalServerError(msg) => write!(f, "Internal server error: {}", msg),
             AuthError::HashingError(msg) => write!(f, "Hashing error: {}", msg),
-            AuthError::RateLimitExceeded => write!(f, "Rate limit exceeded"),
-            AuthError::ThirdPartyServiceError => write!(f, "Third-party service error"),
+            AuthError::CustomError(msg) => write!(f, "Custom error: {}", msg),
+            AuthError::RateLimitExceeded(msg) => write!(f, "Rate limit exceeded: {}", msg),
+            AuthError::ThirdPartyServiceError(msg) => {
+                write!(f, "Third-party service error: {}", msg)
+            }
         }
     }
 }

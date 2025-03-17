@@ -72,7 +72,7 @@ dependencies = [
 
 [[package]]
 name = "authcraft"
-version = "0.3.2"
+version = "0.3.4"
 dependencies = [
  "async-trait",
  "bcrypt",

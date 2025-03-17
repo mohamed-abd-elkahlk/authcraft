@@ -52,7 +52,7 @@ pub trait UserRepository<U>: Send + Sync {
     async fn find_user_by_email(&self, email: &str) -> Result<User<U>, AuthError>;
     async fn create_user(&self, user: RegisterUserRequest) -> Result<User<U>, AuthError>;
     async fn update_user(&self, user: UpdateUser<U>) -> Result<User<U>, AuthError>;
-    async fn delete_user(&self, id: &str) -> Result<(), AuthError>;
+    async fn delete_user(&self, email: &str) -> Result<(), AuthError>;
     async fn create_verification_token(
         &self,
         user_id: &str,

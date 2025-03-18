@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 pub struct User<U = (), R = Role> {
     pub id: String,
     pub username: String,
-    pub is_varfied: bool,
+    pub is_verified: bool,
     pub email: String,
     pub password_hash: String,
     pub role: R,

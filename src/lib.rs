@@ -2,10 +2,13 @@ pub mod email;
 #[allow(unused)]
 pub mod error;
 pub mod jwt;
+pub mod mfa;
 pub mod security;
+
 use async_trait::*;
 use error::AuthError;
 use jwt::{Claims, JwtConfig};
+use mfa::{MfaSettings, MfaType};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
@@ -15,9 +18,14 @@ pub struct User<U = (), R = Role> {
     pub is_verified: bool,
     pub email: String,
     pub password_hash: String,
+    pub mfa_enabled: bool,
+    pub mfa_settings: MfaSettings,
+    pub totp_secret: Option<String>, // TOTP Secret (Google Authenticator)
+    pub email_otp: Option<String>,   // Last generated Email OTP
     pub role: R,
     pub data: Option<U>,
 }
+
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub enum Role {
     Admin,
@@ -65,4 +73,5 @@ pub trait UserRepository<U>: Send + Sync {
         jwt: JwtConfig,
     ) -> Result<(Claims<U>, User<U>), AuthError>;
     async fn mark_user_as_verified(&self, user_id: &str) -> Result<(), AuthError>;
+    async fn enable_mfa(&self, user_id: &str, method: MfaType) -> Result<User<U>, AuthError>;
 }

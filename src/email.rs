@@ -32,7 +32,7 @@ impl EmailService {
         templates_dir: &str,
     ) -> Result<Self, Box<dyn std::error::Error>> {
         // Initialize the template engine
-        let mut templates = Tera::new(templates_dir)?;
+        let mut templates = Tera::new(&format!("{}/**/*", templates_dir))?;
         templates.autoescape_on(vec!["html", "htm", "xml"]);
         templates.register_filter("json_encode", move |value: &tera::Value, _: &_| {
             Ok(serde_json::to_string(&value).unwrap_or_default().into())

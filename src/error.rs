@@ -40,6 +40,7 @@ pub enum AuthError {
     ThirdPartyServiceError(String),
     InvalidSecret(String),
     InvalidOtp(String),
+    InvalidBackupCode(String),
 }
 
 impl fmt::Display for AuthError {
@@ -84,6 +85,7 @@ impl fmt::Display for AuthError {
             AuthError::RateLimitExceeded(msg) => write!(f, "Rate limit exceeded: {}", msg),
             AuthError::InvalidOtp(msg) => write!(f, "Invalid OTP: {}", msg),
             AuthError::InvalidSecret(msg) => write!(f, "Invalid TOTP Secret: {}", msg),
+            AuthError::InvalidBackupCode(msg) => write!(f, "Invalid Backup Code: {}", msg),
             AuthError::ThirdPartyServiceError(msg) => {
                 write!(f, "Third-party service error: {}", msg)
             }

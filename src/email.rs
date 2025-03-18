@@ -52,7 +52,6 @@ impl EmailService {
         })
     }
 
-    // Method to send emails with template
     pub async fn send_templated_email<T: Serialize>(
         &self,
         recipient_email: &str,
@@ -65,32 +64,18 @@ impl EmailService {
         let mut context = Context::new();
         context.insert("data", template_data);
 
-        // Render both HTML and text versions
+        // Render only HTML version
         let html_body = self
             .templates
             .render(&format!("{}.html", template_name), &context)?;
-        let text_body = self
-            .templates
-            .render(&format!("{}.txt", template_name), &context)?;
 
         // Build email message
         let email = Message::builder()
             .from(format!("{} <{}>", self.sender_name, self.sender_email).parse()?)
             .to(format!("{} <{}>", recipient_name, recipient_email).parse()?)
             .subject(subject)
-            .multipart(
-                MultiPart::alternative()
-                    .singlepart(
-                        SinglePart::builder()
-                            .header(header::ContentType::TEXT_PLAIN)
-                            .body(text_body),
-                    )
-                    .singlepart(
-                        SinglePart::builder()
-                            .header(header::ContentType::TEXT_HTML)
-                            .body(html_body),
-                    ),
-            )?;
+            .header(header::ContentType::TEXT_HTML)
+            .body(html_body)?;
 
         // Send the email
         self.mailer.send(email).await?;

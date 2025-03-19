@@ -105,8 +105,12 @@ pub trait UserRepository<U>: Send + Sync {
 
     // Password reset methods
     async fn forgot_password(&self, email: RequestPasswordResetRequest) -> Result<(), AuthError>;
-    async fn verify_reset_token(&self, token: &str) -> Result<bool, AuthError>;
-    async fn reset_password(&self, request: ResetPasswordRequest) -> Result<(), AuthError>;
+    async fn verify_reset_token(&self, user_id: &str, token: &str) -> Result<bool, AuthError>;
+    async fn reset_password(
+        &self,
+        user_id: &str,
+        request: ResetPasswordRequest,
+    ) -> Result<(), AuthError>;
 
     // Session management methods
     async fn update_last_login(&self, user_id: &str) -> Result<(), AuthError>;

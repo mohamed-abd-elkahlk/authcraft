@@ -36,10 +36,16 @@ impl MfaSettings {
 
     /// Verify a TOTP code
     pub fn verify_totp_code(secret: &str, user_code: &str) -> Result<bool, AuthError> {
-        let secret_bytes = base32::decode(base32::Alphabet::Rfc4648 { padding: false }, secret)
-            .ok_or(AuthError::InvalidSecret("Invalid Secret".to_string()))?;
-        let totp = TOTP::new(Algorithm::SHA1, 6, 1, 30, secret_bytes)
-            .map_err(|e| AuthError::InvalidSecret(e.to_string()))?;
+        let secret_bytes =
+            match base32::decode(base32::Alphabet::Rfc4648 { padding: false }, secret) {
+                Some(bytes) => bytes,
+                None => return Ok(false), // Instead of returning an error, return false
+            };
+
+        let totp = match TOTP::new(Algorithm::SHA1, 6, 1, 30, secret_bytes) {
+            Ok(t) => t,
+            Err(_) => return Ok(false), // Invalid TOTP setup → return false
+        };
 
         let time = SystemTime::now()
             .duration_since(UNIX_EPOCH)

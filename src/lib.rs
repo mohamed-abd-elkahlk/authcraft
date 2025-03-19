@@ -9,7 +9,7 @@ use async_trait::*;
 use chrono::{DateTime, Utc};
 use error::AuthError;
 use jwt::{Claims, JwtConfig};
-use mfa::{MfaSettings, MfaType};
+use mfa::MfaType;
 use security::{RequestPasswordResetRequest, ResetPasswordRequest};
 use serde::{Deserialize, Serialize};
 
@@ -26,7 +26,7 @@ pub struct User<U = (), R = Role> {
 
     // Multi-Factor Authentication (MFA)
     pub mfa_enabled: bool,
-    pub mfa_settings: MfaSettings,
+    pub mfa_type: Option<MfaType>,
     pub totp_secret: Option<String>, // TOTP Secret (Google Authenticator)
     pub email_otp: Option<String>,   // Last generated Email OTP
     pub backup_codes: Option<Vec<String>>, // Backup codes for MFA recovery

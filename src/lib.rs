@@ -94,17 +94,12 @@ pub trait UserRepository<U>: Send + Sync {
         user_id: &str,
         jwt: JwtConfig,
     ) -> Result<(String, User<U>), AuthError>;
-    async fn verify_email(
-        &self,
-        token: &str,
-        jwt: JwtConfig,
-    ) -> Result<(Claims<U>, User<U>), AuthError>;
+    async fn verify_email(&self, token: &str, jwt: JwtConfig) -> Result<Claims<U>, AuthError>;
     async fn mark_user_as_verified(&self, user_id: &str) -> Result<(), AuthError>;
     // MFA methods
-    async fn enable_mfa(&self, user_id: &str, method: MfaType) -> Result<User<U>, AuthError>;
-    async fn disable_mfa(&self, user_id: &str) -> Result<User<U>, AuthError>;
-    async fn update_totp_secret(&self, user_id: &str, secret: String)
-    -> Result<User<U>, AuthError>;
+    async fn enable_mfa(&self, user_id: &str, method: MfaType) -> Result<(), AuthError>;
+    async fn disable_mfa(&self, user_id: &str) -> Result<(), AuthError>;
+    async fn update_totp_secret(&self, user_id: &str, secret: String) -> Result<String, AuthError>;
     async fn generate_backup_codes(&self, user_id: &str) -> Result<Vec<String>, AuthError>;
     async fn use_backup_code(&self, user_id: &str, code: String) -> Result<(), AuthError>;
 

@@ -5,7 +5,7 @@ pub mod jwt;
 pub mod mfa;
 pub mod security;
 
-use std::time::SystemTime;
+use std::{collections::HashMap, time::SystemTime};
 
 use async_trait::*;
 use chrono::{DateTime, Utc};
@@ -14,6 +14,7 @@ use jwt::{Claims, JwtConfig};
 use mfa::MfaType;
 use security::{RequestPasswordResetRequest, ResetPasswordRequest};
 use serde::{Deserialize, Serialize};
+use tera::Value;
 
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub struct AuthData<R = Role> {
@@ -61,6 +62,12 @@ pub enum Role {
     Guest,
 }
 
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
+pub struct AppUser<T = ()> {
+    pub auth_data: AuthData,
+    pub app_data: T,
+    pub metadata: HashMap<String, Value>, // Optional extra data
+}
 #[derive(Debug, Deserialize, Serialize)]
 pub struct RegisterUserRequest {
     pub username: String,

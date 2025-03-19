@@ -5,6 +5,8 @@ pub mod jwt;
 pub mod mfa;
 pub mod security;
 
+use std::time::SystemTime;
+
 use async_trait::*;
 use chrono::{DateTime, Utc};
 use error::AuthError;
@@ -116,7 +118,7 @@ pub trait UserRepository<U>: Send + Sync {
     async fn update_last_login(&self, user_id: &str) -> Result<(), AuthError>;
     async fn increment_failed_login_attempts(&self, user_id: &str) -> Result<(), AuthError>;
     async fn reset_failed_login_attempts(&self, user_id: &str) -> Result<(), AuthError>;
-    async fn lock_account(&self, user_id: &str, until: DateTime<Utc>) -> Result<(), AuthError>;
+    async fn lock_account(&self, user_id: &str, until: SystemTime) -> Result<(), AuthError>;
     async fn unlock_account(&self, user_id: &str) -> Result<(), AuthError>;
 
     // Refresh token methods
@@ -124,7 +126,7 @@ pub trait UserRepository<U>: Send + Sync {
         &self,
         user_id: &str,
         token: String,
-        expiry: DateTime<Utc>,
+        expiry: SystemTime,
     ) -> Result<(), AuthError>;
     async fn clear_refresh_token(&self, user_id: &str) -> Result<(), AuthError>;
 

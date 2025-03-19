@@ -137,3 +137,24 @@ pub trait UserRepository<U>: Send + Sync {
     ) -> Result<(), AuthError>;
     async fn update_last_password_change(&self, user_id: &str) -> Result<(), AuthError>;
 }
+
+impl From<Role> for String {
+    fn from(value: Role) -> Self {
+        match value {
+            Role::Admin => "Admin".to_string(),
+            Role::User => "User".to_string(),
+            Role::Guest => "Guest".to_string(),
+        }
+    }
+}
+
+impl From<String> for Role {
+    fn from(value: String) -> Self {
+        match value.as_str() {
+            "Admin" => Role::Admin,
+            "User" => Role::User,
+            "Guest" => Role::Guest,
+            _ => panic!("Invalid role string"), // Alternatively, return a default value
+        }
+    }
+}

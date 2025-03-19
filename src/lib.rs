@@ -16,7 +16,7 @@ use security::{RequestPasswordResetRequest, ResetPasswordRequest};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
-pub struct User<U = (), R = Role> {
+pub struct AuthData<R = Role> {
     // Core user fields
     pub id: String,
     pub username: String,
@@ -24,7 +24,6 @@ pub struct User<U = (), R = Role> {
     pub email: String,
     pub password_hash: String,
     pub role: R,
-    pub data: Option<U>,
 
     // Multi-Factor Authentication (MFA)
     pub mfa_enabled: bool,
@@ -86,16 +85,16 @@ pub struct UpdateUser<U = ()> {
 }
 #[async_trait]
 pub trait UserRepository<U>: Send + Sync {
-    async fn find_user_by_id(&self, id: &str) -> Result<User<U>, AuthError>;
-    async fn find_user_by_email(&self, email: &str) -> Result<User<U>, AuthError>;
-    async fn create_user(&self, user: RegisterUserRequest) -> Result<User<U>, AuthError>;
-    async fn update_user(&self, user: UpdateUser<U>) -> Result<User<U>, AuthError>;
+    async fn find_user_by_id(&self, id: &str) -> Result<AuthData<U>, AuthError>;
+    async fn find_user_by_email(&self, email: &str) -> Result<AuthData<U>, AuthError>;
+    async fn create_user(&self, user: RegisterUserRequest) -> Result<AuthData<U>, AuthError>;
+    async fn update_user(&self, user: UpdateUser<U>) -> Result<AuthData<U>, AuthError>;
     async fn delete_user(&self, email: &str) -> Result<(), AuthError>;
     async fn create_verification_token(
         &self,
         user_id: &str,
         jwt: JwtConfig,
-    ) -> Result<(String, User<U>), AuthError>;
+    ) -> Result<(String, AuthData<U>), AuthError>;
     async fn verify_email(&self, token: &str, jwt: JwtConfig) -> Result<Claims<U>, AuthError>;
     async fn mark_user_as_verified(&self, user_id: &str) -> Result<(), AuthError>;
     // MFA methods

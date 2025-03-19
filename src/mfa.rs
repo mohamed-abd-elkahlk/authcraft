@@ -12,7 +12,6 @@ pub enum MfaType {
 
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub struct MfaSettings {
-    pub enabled: bool,
     pub method: MfaType,                   // Which MFA type (TOTP or Email)
     pub secret: Option<String>,            // Used for TOTP (Google Authenticator)
     pub backup_codes: Option<Vec<String>>, // Backup codes for MFA recovery

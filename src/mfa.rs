@@ -6,10 +6,10 @@ use totp_rs::{Algorithm, TOTP};
 
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub enum MfaType {
-    Totp,  // Google Authenticator (TOTP)
-    Email, // OTP via Email
+    Totp,        // Google Authenticator (TOTP)
+    Email,       // OTP via Email
+    BackupCodes, // Backup codes for MFA recovery
 }
-
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub struct MfaSettings {
     pub method: MfaType,                   // Which MFA type (TOTP or Email)
@@ -19,7 +19,7 @@ pub struct MfaSettings {
 
 impl MfaSettings {
     /// Generate a TOTP secret for Google Authenticator
-    pub fn generate_totp_secret() -> String {
+    pub fn generate_totp_secret() -> Result<String, AuthError> {
         let mut seed = [0u8; 20]; // 20 bytes = 160 bits
         rand::rng().fill_bytes(&mut seed);
 
@@ -30,8 +30,8 @@ impl MfaSettings {
             30, // Expiry (seconds)
             seed.to_vec(),
         )
-        .unwrap();
-        totp.get_secret_base32()
+        .map_err(|e| AuthError::InternalServerError(e.to_string()))?;
+        Ok(totp.get_secret_base32())
     }
 
     /// Verify a TOTP code

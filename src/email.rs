@@ -1,3 +1,58 @@
+//! # Email Module
+//!
+//! This module provides functionality for sending emails using an SMTP server.
+//! It supports templated emails (using the `tera` templating engine) and custom emails
+//! with both plain text and HTML content.
+//!
+//! ## Features
+//! - Send templated emails with dynamic data.
+//! - Send custom emails with plain text and HTML content.
+//! - Send verification emails with a predefined template.
+//! - Configurable SMTP settings.
+//!
+//! ## Example Usage
+//!
+//! ```rust
+//! use authcarft::email::{EmailConfig, EmailService};
+//!
+//! #[tokio::main]
+//! async fn main() -> Result<(), Box<dyn std::error::Error>> {
+//!     // Configure the email service
+//!     let config = EmailConfig {
+//!         smtp_server: "smtp.example.com".to_string(),
+//!         smtp_username: "user@example.com".to_string(),
+//!         smtp_password: "password".to_string(),
+//!         sender_email: "noreply@example.com".to_string(),
+//!         sender_name: "Example Corp".to_string(),
+//!     };
+//!
+//!     // Initialize the email service
+//!     let email_service = EmailService::new(config, "templates")?;
+//!
+//!     // Send a templated email
+//!     email_service
+//!         .send_templated_email(
+//!             "recipient@example.com",
+//!             "Recipient Name",
+//!             "Welcome!",
+//!             "welcome_email",
+//!             &serde_json::json!({ "name": "Recipient Name" }),
+//!         )
+//!         .await?;
+//!
+//!     // Send a verification email
+//!     email_service
+//!         .send_verification_email(
+//!             "recipient@example.com",
+//!             "Recipient Name",
+//!             "https://example.com/verify?token=abc123",
+//!         )
+//!         .await?;
+//!
+//!     Ok(())
+//! }
+//! ```
+
 use lettre::{
     AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
     message::{MultiPart, SinglePart, header},
@@ -6,18 +61,22 @@ use lettre::{
 use serde::Serialize;
 use tera::{Context, Tera};
 
-// Configuration for the email service
-
+/// Configuration for the email service.
 #[derive(Debug, Clone)]
 pub struct EmailConfig {
+    /// SMTP server address (e.g., "smtp.example.com").
     pub smtp_server: String,
+    /// SMTP username for authentication.
     pub smtp_username: String,
+    /// SMTP password for authentication.
     pub smtp_password: String,
+    /// Sender's email address.
     pub sender_email: String,
+    /// Sender's display name.
     pub sender_name: String,
 }
-// Email service that handles template rendering and sending
 
+/// Email service for sending templated and custom emails.
 #[derive(Debug, Clone)]
 pub struct EmailService {
     mailer: AsyncSmtpTransport<Tokio1Executor>,
@@ -27,18 +86,36 @@ pub struct EmailService {
 }
 
 impl EmailService {
+    /// Creates a new `EmailService` instance.
+    ///
+    /// # Arguments
+    /// - `config`: Configuration for the email service.
+    /// - `templates_dir`: Directory containing email templates.
+    ///
+    /// # Returns
+    /// - `Result<Self, Box<dyn std::error::Error>>`: The initialized `EmailService` or an error.
+    ///
+    /// # Example
+    /// ```rust
+    /// let config = EmailConfig {
+    ///     smtp_server: "smtp.example.com".to_string(),
+    ///     smtp_username: "user@example.com".to_string(),
+    ///     smtp_password: "password".to_string(),
+    ///     sender_email: "noreply@example.com".to_string(),
+    ///     sender_name: "Example Corp".to_string(),
+    /// };
+    /// let email_service = EmailService::new(config, "templates")?;
+    /// ```
     pub fn new(
         config: EmailConfig,
         templates_dir: &str,
     ) -> Result<Self, Box<dyn std::error::Error>> {
-        // Initialize the template engine
         let mut templates = Tera::new(&format!("{}/**/*", templates_dir))?;
         templates.autoescape_on(vec!["html", "htm", "xml"]);
         templates.register_filter("json_encode", move |value: &tera::Value, _: &_| {
             Ok(serde_json::to_string(&value).unwrap_or_default().into())
         });
 
-        // Configure the SMTP transport
         let creds = Credentials::new(config.smtp_username, config.smtp_password);
         let mailer = AsyncSmtpTransport::<Tokio1Executor>::relay(&config.smtp_server)?
             .credentials(creds)
@@ -52,6 +129,28 @@ impl EmailService {
         })
     }
 
+    /// Sends a templated email.
+    ///
+    /// # Arguments
+    /// - `recipient_email`: Email address of the recipient.
+    /// - `recipient_name`: Name of the recipient.
+    /// - `subject`: Email subject.
+    /// - `template_name`: Name of the template (without extension).
+    /// - `template_data`: Data to render the template.
+    ///
+    /// # Returns
+    /// - `Result<(), Box<dyn std::error::Error>>`: Success or error.
+    ///
+    /// # Example
+    /// ```rust
+    /// email_service.send_templated_email(
+    ///     "recipient@example.com",
+    ///     "Recipient Name",
+    ///     "Welcome!",
+    ///     "welcome_email",
+    ///     &serde_json::json!({ "name": "Recipient Name" }),
+    /// ).await?;
+    /// ```
     pub async fn send_templated_email<T: Serialize>(
         &self,
         recipient_email: &str,
@@ -60,16 +159,13 @@ impl EmailService {
         template_name: &str,
         template_data: &T,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        // Create template context
         let mut context = Context::new();
         context.insert("data", template_data);
 
-        // Render only HTML version
         let html_body = self
             .templates
             .render(&format!("{}.html", template_name), &context)?;
 
-        // Build email message
         let email = Message::builder()
             .from(format!("{} <{}>", self.sender_name, self.sender_email).parse()?)
             .to(format!("{} <{}>", recipient_name, recipient_email).parse()?)
@@ -77,20 +173,34 @@ impl EmailService {
             .header(header::ContentType::TEXT_HTML)
             .body(html_body)?;
 
-        // Send the email
         self.mailer.send(email).await?;
-
         Ok(())
     }
 
-    // Method specifically for sending verification emails
+    /// Sends a verification email using a predefined template.
+    ///
+    /// # Arguments
+    /// - `recipient_email`: Email address of the recipient.
+    /// - `recipient_name`: Name of the recipient.
+    /// - `verification_link`: Link for email verification.
+    ///
+    /// # Returns
+    /// - `Result<(), Box<dyn std::error::Error>>`: Success or error.
+    ///
+    /// # Example
+    /// ```rust
+    /// email_service.send_verification_email(
+    ///     "recipient@example.com",
+    ///     "Recipient Name",
+    ///     "https://example.com/verify?token=abc123",
+    /// ).await?;
+    /// ```
     pub async fn send_verification_email(
         &self,
         recipient_email: &str,
         recipient_name: &str,
         verification_link: &str,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        // Create the data for the verification template
         let data = serde_json::json!({
             "name": recipient_name,
             "verification_link": verification_link,
@@ -106,7 +216,29 @@ impl EmailService {
         )
         .await
     }
-    // Method to send a custom email without using predefined templates
+
+    /// Sends a custom email with plain text and HTML content.
+    ///
+    /// # Arguments
+    /// - `recipient_email`: Email address of the recipient.
+    /// - `recipient_name`: Name of the recipient.
+    /// - `subject`: Email subject.
+    /// - `plain_text`: Plain text content of the email.
+    /// - `html_content`: HTML content of the email.
+    ///
+    /// # Returns
+    /// - `Result<(), Box<dyn std::error::Error>>`: Success or error.
+    ///
+    /// # Example
+    /// ```rust
+    /// email_service.send_custom_email(
+    ///     "recipient@example.com",
+    ///     "Recipient Name",
+    ///     "Hello!",
+    ///     "This is a plain text email.",
+    ///     "<p>This is an <strong>HTML</strong> email.</p>",
+    /// ).await?;
+    /// ```
     pub async fn send_custom_email(
         &self,
         recipient_email: &str,
@@ -115,7 +247,6 @@ impl EmailService {
         plain_text: &str,
         html_content: &str,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        // Build email message
         let email = Message::builder()
             .from(format!("{} <{}>", self.sender_name, self.sender_email).parse()?)
             .to(format!("{} <{}>", recipient_name, recipient_email).parse()?)
@@ -134,7 +265,6 @@ impl EmailService {
                     ),
             )?;
 
-        // Send the email
         self.mailer.send(email).await?;
         Ok(())
     }

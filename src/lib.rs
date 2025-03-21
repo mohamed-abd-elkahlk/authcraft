@@ -15,23 +15,134 @@
 //! ## Example Usage
 //!
 //! ```rust
-//! use authcraft::{AuthError, UserRepository};
+//! use authcraft::{error::AuthError, UserRepository};
 //! use async_trait::async_trait;
+//! use sqlx::PgPool;
 //!
-//! struct MemoryUserRepo;
+//! struct PostgresUserRepo {
+//!     pool: PgPool,
+//! }
 //!
 //! #[async_trait]
-//! impl UserRepository<()> for MemoryUserRepo {
-//!     async fn enable_mfa(&self, user_id: &str) -> Result<(), AuthError> {
-//!         println!("Enabling MFA for user: {}", user_id);
+//! impl UserRepository<()> for PostgresUserRepo {
+//!     async fn find_user_by_id(&self, id: &str) -> Result<AuthData<()>, AuthError> {
+//!         let row = sqlx::query!(
+//!             "SELECT id, username, email, password_hash, is_verified FROM users WHERE id = $1",
+//!             id
+//!         )
+//!         .fetch_one(&self.pool)
+//!         .await
+//!         .map_err(|e| AuthError::UserNotFound(e.to_string()))?;
+//!
+//!         Ok(AuthData {
+//!             id: row.id,
+//!             username: row.username,
+//!             is_verified: row.is_verified,
+//!             email: row.email,
+//!             password_hash: row.password_hash,
+//!             role: Role::User, // Assuming default role, modify as needed
+//!             mfa_enabled: false,
+//!             mfa_type: None,
+//!             totp_secret: None,
+//!             email_otp: None,
+//!             backup_codes: None,
+//!             mfa_recovery_codes_used: None,
+//!             password_reset_token: None,
+//!             password_reset_expiry: None,
+//!             email_verification_token: None,
+//!             email_verification_expiry: None,
+//!             last_login_at: None,
+//!             failed_login_attempts: 0,
+//!             account_locked_until: None,
+//!             refresh_token: None,
+//!             refresh_token_expiry: None,
+//!             last_password_change: None,
+//!             password_history: None,
+//!         })
+//!     }
+//!
+//!     async fn update_user(&self, user: UpdateUser<()>) -> Result<AuthData<()>, AuthError> {
+//!         let row = sqlx::query!(
+//!             "UPDATE users SET username = $1, email = $2 WHERE id = $3 RETURNING id, username, email, password_hash, is_verified",
+//!             user.username,
+//!             user.email,
+//!             user.id
+//!         )
+//!         .fetch_one(&self.pool)
+//!         .await
+//!         .map_err(|e| AuthError::DatabaseError(e.to_string()))?;
+//!
+//!         Ok(AuthData {
+//!             id: row.id,
+//!             username: row.username,
+//!             is_verified: row.is_verified,
+//!             email: row.email,
+//!             password_hash: row.password_hash,
+//!             role: user.role.unwrap_or_default(),
+//!             mfa_enabled: false,
+//!             mfa_type: None,
+//!             totp_secret: None,
+//!             email_otp: None,
+//!             backup_codes: None,
+//!             mfa_recovery_codes_used: None,
+//!             password_reset_token: None,
+//!             password_reset_expiry: None,
+//!             email_verification_token: None,
+//!             email_verification_expiry: None,
+//!             last_login_at: None,
+//!             failed_login_attempts: 0,
+//!             account_locked_until: None,
+//!             refresh_token: None,
+//!             refresh_token_expiry: None,
+//!             last_password_change: None,
+//!             password_history: None,
+//!         })
+//!     }
+//!
+//!     async fn delete_user(&self, email: &str) -> Result<(), AuthError> {
+//!         let result = sqlx::query!("DELETE FROM users WHERE email = $1", email)
+//!             .execute(&self.pool)
+//!             .await
+//!             .map_err(|e| AuthError::DatabaseError(e.to_string()))?;
+//!
+//!         if result.rows_affected() == 0 {
+//!             return Err(AuthError::UserNotFound("User not found".to_string()));
+//!         }
 //!         Ok(())
 //!     }
 //! }
-//! ```
 //!
+//! #[tokio::main]
+//! async fn main() -> Result<(), AuthError> {
+//!     // Initialize the PostgreSQL connection pool
+//!     let pool = PgPool::connect("postgres://user:password@localhost/database").await?;
+//!
+//!     // Create a new PostgresUserRepo instance
+//!     let user_repo = PostgresUserRepo { pool };
+//!
+//!     // Find a user by ID
+//!     let user = user_repo.find_user_by_id("user_id").await?;
+//!     println!("Found user by ID: {:?}", user);
+//!
+//!     // Update a user
+//!     let updated_user = UpdateUser {
+//!         id: "user_id".to_string(),
+//!         username: Some("new_username".to_string()),
+//!         email: Some("new_email@example.com".to_string()),
+//!         role: None, // Optional: Update role if needed
+//!     };
+//!     let updated_user = user_repo.update_user(updated_user).await?;
+//!     println!("Updated user: {:?}", updated_user);
+//!
+//!     // Delete a user
+//!     user_repo.delete_user("new_email@example.com").await?;
+//!     println!("User deleted successfully");
+//!
+//!     Ok(())
+//! }
+//! ```
 //! ## Modules
 //!
-//! - [`auth`](crate::auth) - User authentication logic.
 //! - [`email`](crate::email) - Email-based authentication and verification.
 //! - [`jwt`](crate::jwt) - JWT authentication and refresh token management.
 //! - [`mfa`](crate::mfa) - Multi-factor authentication (MFA) support.

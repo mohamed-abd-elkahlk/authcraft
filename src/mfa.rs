@@ -1,24 +1,59 @@
+//! Multi-Factor Authentication (MFA) Module
+//!
+//! This module provides support for multiple MFA methods, including:
+//! - Time-based One-Time Passwords (TOTP) using Google Authenticator.
+//! - Email-based OTP verification.
+//! - Backup codes for account recovery.
+//!
+//! # Example Usage
+//! ```rust
+//! use crate::mfa::{MfaSettings, MfaType};
+//!
+//! let mut settings = MfaSettings {
+//!     method: MfaType::Totp,
+//!     secret: Some(MfaSettings::generate_totp_secret().unwrap()),
+//!     backup_codes: Some(MfaSettings::generate_backup_codes(5, 10)),
+//! };
+//!
+//! let code = "123456"; // Example TOTP code
+//! let is_valid = MfaSettings::verify_totp_code(settings.secret.as_ref().unwrap(), code).unwrap();
+//! println!("Is the TOTP code valid? {}", is_valid);
+//! ```
+
 use crate::error::AuthError;
 use rand::{Rng, RngCore, distr::Alphanumeric};
 use serde::{Deserialize, Serialize};
 use std::time::{SystemTime, UNIX_EPOCH};
 use totp_rs::{Algorithm, TOTP};
 
+/// Enumeration of supported MFA types.
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub enum MfaType {
-    Totp,        // Google Authenticator (TOTP)
-    Email,       // OTP via Email
-    BackupCodes, // Backup codes for MFA recovery
+    /// Time-based One-Time Passwords (TOTP) using Google Authenticator.
+    Totp,
+    /// One-time passcodes sent via email.
+    Email,
+    /// A set of predefined backup codes for account recovery.
+    BackupCodes,
 }
+
+/// Configuration settings for Multi-Factor Authentication (MFA).
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub struct MfaSettings {
-    pub method: MfaType,                   // Which MFA type (TOTP or Email)
-    pub secret: Option<String>,            // Used for TOTP (Google Authenticator)
-    pub backup_codes: Option<Vec<String>>, // Backup codes for MFA recovery
+    /// The selected MFA method.
+    pub method: MfaType,
+    /// The secret key used for TOTP.
+    pub secret: Option<String>,
+    /// A list of backup codes for account recovery.
+    pub backup_codes: Option<Vec<String>>,
 }
 
 impl MfaSettings {
-    /// Generate a TOTP secret for Google Authenticator
+    /// Generates a new TOTP secret for Google Authenticator.
+    ///
+    /// # Returns
+    /// * `Ok(String)` - The generated Base32-encoded secret key.
+    /// * `Err(AuthError)` - If secret generation fails.
     pub fn generate_totp_secret() -> Result<String, AuthError> {
         let mut seed = [0u8; 20]; // 20 bytes = 160 bits
         rand::rng().fill_bytes(&mut seed);
@@ -34,17 +69,26 @@ impl MfaSettings {
         Ok(totp.get_secret_base32())
     }
 
-    /// Verify a TOTP code
+    /// Verifies a TOTP code using a given secret.
+    ///
+    /// # Arguments
+    /// * `secret` - The Base32-encoded secret key.
+    /// * `user_code` - The TOTP code provided by the user.
+    ///
+    /// # Returns
+    /// * `Ok(true)` if the code is valid.
+    /// * `Ok(false)` if the code is invalid.
+    /// * `Err(AuthError)` if there is an internal error.
     pub fn verify_totp_code(secret: &str, user_code: &str) -> Result<bool, AuthError> {
         let secret_bytes =
             match base32::decode(base32::Alphabet::Rfc4648 { padding: false }, secret) {
                 Some(bytes) => bytes,
-                None => return Ok(false), // Instead of returning an error, return false
+                None => return Ok(false),
             };
 
         let totp = match TOTP::new(Algorithm::SHA1, 6, 1, 30, secret_bytes) {
             Ok(t) => t,
-            Err(_) => return Ok(false), // Invalid TOTP setup → return false
+            Err(_) => return Ok(false),
         };
 
         let time = SystemTime::now()
@@ -55,7 +99,14 @@ impl MfaSettings {
         Ok(totp.check(user_code, time))
     }
 
-    /// Generate a set of alphanumeric backup codes
+    /// Generates a list of alphanumeric backup codes.
+    ///
+    /// # Arguments
+    /// * `count` - The number of backup codes to generate.
+    /// * `length` - The length of each backup code.
+    ///
+    /// # Returns
+    /// * `Vec<String>` - A vector containing the generated backup codes.
     pub fn generate_backup_codes(count: usize, length: usize) -> Vec<String> {
         let mut rng = rand::rng();
         let mut codes = Vec::with_capacity(count);
@@ -70,7 +121,14 @@ impl MfaSettings {
         codes
     }
 
-    /// Verify a backup code
+    /// Verifies if a provided backup code is valid.
+    ///
+    /// # Arguments
+    /// * `code` - The backup code to verify.
+    ///
+    /// # Returns
+    /// * `Ok(true)` if the code is valid.
+    /// * `Err(AuthError)` if the code is invalid or no backup codes are available.
     pub fn verify_backup_code(&self, code: &str) -> Result<bool, AuthError> {
         if let Some(backup_codes) = &self.backup_codes {
             if backup_codes.contains(&code.to_string()) {
@@ -87,7 +145,14 @@ impl MfaSettings {
         }
     }
 
-    /// Mark a backup code as used
+    /// Marks a backup code as used by removing it from the list.
+    ///
+    /// # Arguments
+    /// * `code` - The backup code to mark as used.
+    ///
+    /// # Returns
+    /// * `Ok(())` if the operation was successful.
+    /// * `Err(AuthError)` if the code was not found or no backup codes are available.
     pub fn mark_backup_code_as_used(&mut self, code: &str) -> Result<(), AuthError> {
         if let Some(backup_codes) = &mut self.backup_codes {
             if let Some(index) = backup_codes.iter().position(|c| c == code) {

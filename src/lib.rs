@@ -4,93 +4,60 @@
 //! multi-factor authentication (MFA), password recovery, and role-based access control.
 //!
 //! ## Features
-//! - User authentication with hashed passwords
-//! - Email verification and password reset flows
-//! - Multi-factor authentication (MFA) support (TOTP, email OTP, backup codes)
-//! - JWT-based authentication with refresh token support
-//! - Role-based access control (RBAC)
-//! - Account lockout after failed login attempts
 //!
-//! ## Modules
-//!
-//! - `email`: Handles email-based authentication and verification.
-//! - `error`: Defines authentication-related errors.
-//! - `jwt`: Manages JWT authentication.
-//! - `mfa`: Provides multi-factor authentication support.
-//! - `security`: Handles password reset and account security operations.
+//! - **User Authentication**: Secure login & registration with password hashing.
+//! - **Email Verification & Password Reset**: Send verification emails and password reset links.
+//! - **Multi-Factor Authentication (MFA)**: Support for TOTP, email OTP, and backup codes.
+//! - **JWT Authentication**: Token-based authentication with refresh token support.
+//! - **Role-Based Access Control (RBAC)**: User roles and permissions management.
+//! - **Account Security**: Lock accounts after failed login attempts and enforce password policies.
 //!
 //! ## Example Usage
 //!
-//! ### User Registration
 //! ```rust
-//! use authcraft::AuthService;
+//! use authcraft::{AuthError, UserRepository};
+//! use async_trait::async_trait;
 //!
-//! async fn register_user() {
-//!     let auth_service = AuthService::new(); // Assume AuthService is your authentication manager
-//!     
-//!     let user_id = auth_service.register("user@example.com", "securepassword").await.unwrap();
-//!     println!("Registered user with ID: {}", user_id);
-//! }
-//! ```
+//! struct MemoryUserRepo;
 //!
-//! ### User Login with JWT
-//! ```rust
-//! use authcraft::AuthService;
-//!
-//! async fn login() {
-//!     let auth_service = AuthService::new();
-//!
-//!     match auth_service.login("user@example.com", "securepassword").await {
-//!         Ok(token) => println!("Login successful, JWT: {}", token),
-//!         Err(e) => println!("Login failed: {:?}", e),
+//! #[async_trait]
+//! impl UserRepository<()> for MemoryUserRepo {
+//!     async fn enable_mfa(&self, user_id: &str) -> Result<(), AuthError> {
+//!         println!("Enabling MFA for user: {}", user_id);
+//!         Ok(())
 //!     }
 //! }
 //! ```
 //!
-//! ### Password Reset
-//! ```rust
-//! use authcraft::AuthService;
+//! ## Modules
 //!
-//! async fn reset_password() {
-//!     let auth_service = AuthService::new();
-//!
-//!     if let Err(e) = auth_service.request_password_reset("user@example.com").await {
-//!         println!("Error sending password reset email: {:?}", e);
-//!     } else {
-//!         println!("Password reset email sent.");
-//!     }
-//! }
-//! ```
-//!
-//! ### Email Verification
-//! ```rust
-//! use authcraft::AuthService;
-//!
-//! async fn verify_email(token: &str) {
-//!     let auth_service = AuthService::new();
-//!
-//!     if let Err(e) = auth_service.verify_email(token).await {
-//!         println!("Email verification failed: {:?}", e);
-//!     } else {
-//!         println!("Email successfully verified!");
-//!     }
-//! }
-//! ```
+//! - [`auth`](crate::auth) - User authentication logic.
+//! - [`email`](crate::email) - Email-based authentication and verification.
+//! - [`jwt`](crate::jwt) - JWT authentication and refresh token management.
+//! - [`mfa`](crate::mfa) - Multi-factor authentication (MFA) support.
+//! - [`rbac`](crate::rbac) - Role-based access control.
+//! - [`security`](crate::security) - Account security and password policies.
+//! - [`error`](crate::error) - Authentication error types.
+
 pub mod email;
 #[allow(unused)]
 pub mod error;
 pub mod jwt;
 pub mod mfa;
+pub mod rbac;
 pub mod security;
-
 use async_trait::*;
 use chrono::{DateTime, Utc};
 use error::AuthError;
 use jwt::{Claims, JwtConfig};
 use mfa::{MfaSettings, MfaType};
+use rbac::RBACRole;
 use security::{RequestPasswordResetRequest, ResetPasswordRequest};
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, time::SystemTime};
+use std::{
+    collections::{HashMap, HashSet},
+    time::SystemTime,
+};
 use tera::Value;
 
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
@@ -1346,33 +1313,91 @@ pub trait UserRepository: Send + Sync {
         user_id: &str,
         password_hash: String,
     ) -> Result<(), AuthError>;
-    /// Updates the last password change timestamp for a user.
+    // Role-Based Access Control (RBAC) methods
+
+    /// Assigns a role to a user.
     ///
-    /// This function records when the user's password was last changed,
-    /// allowing security policies to enforce password expiry.
-    ///
-    /// ## Arguments
+    /// # Arguments
     /// * `user_id` - The unique identifier of the user.
+    /// * `role` - The RBAC role to assign.
     ///
-    /// ## Returns
-    /// * `Ok(())` if the timestamp was successfully updated.
-    /// * `Err(AuthError)` if an error occurs.
-    ///
-    /// ## Example Usage
+    /// # Example Usage
     /// ```rust
-    /// async fn update_last_password_change(&self, user_id: &str) -> Result<(), AuthError> {
+    /// async fn assign_role_to_user(
+    ///     &self,
+    ///     user_id: &str,
+    ///     role: RBACRole,
+    ///     pool: &PgPool
+    /// ) -> Result<(), AuthError> {
     ///     sqlx::query!(
-    ///         "UPDATE users SET last_password_change = NOW() WHERE id = $1",
-    ///         user_id
+    ///         "INSERT INTO user_roles (user_id, role_name) VALUES ($1, $2)",
+    ///         user_id,
+    ///         role.name
     ///     )
-    ///     .execute(&self.pool)
+    ///     .execute(pool)
     ///     .await
     ///     .map_err(|e| AuthError::DatabaseError(e.to_string()))?;
     ///
     ///     Ok(())
     /// }
     /// ```
-    async fn update_last_password_change(&self, user_id: &str) -> Result<(), AuthError>;
+    async fn assign_role_to_user(&self, user_id: &str, role: RBACRole);
+
+    /// Removes a role from a user.
+    ///
+    /// # Arguments
+    /// * `user_id` - The unique identifier of the user.
+    /// * `role_name` - The name of the role to be removed.
+    ///
+    /// # Example Usage
+    /// ```rust
+    /// async fn remove_role_from_user(
+    ///     &self,
+    ///     user_id: &str,
+    ///     role_name: &str,
+    ///     pool: &PgPool
+    /// ) -> Result<(), AuthError> {
+    ///     sqlx::query!(
+    ///         "DELETE FROM user_roles WHERE user_id = $1 AND role_name = $2",
+    ///         user_id,
+    ///         role_name
+    ///     )
+    ///     .execute(pool)
+    ///     .await
+    ///     .map_err(|e| AuthError::DatabaseError(e.to_string()))?;
+    ///
+    ///     Ok(())
+    /// }
+    /// ```
+    async fn remove_role_from_user(&self, user_id: &str, role_name: &str);
+
+    /// Checks if a user has a specific permission.
+    ///
+    /// # Arguments
+    /// * `user_id` - The unique identifier of the user.
+    /// * `permission` - The permission to check.
+    ///
+    /// # Returns
+    /// * `true` if the user has the permission, `false` otherwise.
+    async fn user_has_permission(&self, user_id: &str, permission: &str) -> bool;
+
+    /// Retrieves all roles assigned to a user.
+    ///
+    /// # Arguments
+    /// * `user_id` - The unique identifier of the user.
+    ///
+    /// # Returns
+    /// * A vector containing the user's assigned roles.
+    async fn get_user_roles(&self, user_id: &str) -> Vec<RBACRole>;
+
+    /// Retrieves all permissions assigned to a user (merged from roles).
+    ///
+    /// # Arguments
+    /// * `user_id` - The unique identifier of the user.
+    ///
+    /// # Returns
+    /// * A `HashSet` containing all permissions the user has.
+    async fn get_user_permissions(&self, user_id: &str) -> HashSet<String>;
 }
 
 impl From<Role> for String {

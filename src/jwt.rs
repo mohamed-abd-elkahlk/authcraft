@@ -9,7 +9,8 @@ pub struct Claims<C> {
     pub sub: String,
     pub exp: usize,
     pub iat: usize,
-    pub extra_data: Option<C>,
+    pub payload: Option<C>,
+    pub roles: Vec<String>,
 }
 #[derive(Debug, Clone)]
 pub struct JwtConfig {
@@ -30,7 +31,8 @@ impl JwtConfig {
 pub fn issue_jwt<C: Serialize>(
     config: JwtConfig,
     sub: String,
-    extra_data: Option<C>,
+    payload: Option<C>,
+    roles: Vec<String>,
 ) -> Result<String, AuthError> {
     let expiration = Utc::now()
         .checked_add_signed(Duration::days(config.expiration_days))
@@ -41,7 +43,8 @@ pub fn issue_jwt<C: Serialize>(
         sub,
         exp: expiration,
         iat: Utc::now().timestamp() as usize,
-        extra_data,
+        payload,
+        roles,
     };
 
     let token = encode(

@@ -12,135 +12,6 @@
 //! - **Role-Based Access Control (RBAC)**: User roles and permissions management.
 //! - **Account Security**: Lock accounts after failed login attempts and enforce password policies.
 //!
-//! ## Example Usage
-//!
-//! ```rust
-//! use authcraft::{error::AuthError, UserRepository};
-//! use async_trait::async_trait;
-//! use sqlx::PgPool;
-//!
-//! struct PostgresUserRepo {
-//!     pool: PgPool,
-//! }
-//!
-//! #[async_trait]
-//! impl UserRepository<()> for PostgresUserRepo {
-//!     async fn find_user_by_id(&self, id: &str) -> Result<AuthData<()>, AuthError> {
-//!         let row = sqlx::query!(
-//!             "SELECT id, username, email, password_hash, is_verified FROM users WHERE id = $1",
-//!             id
-//!         )
-//!         .fetch_one(&self.pool)
-//!         .await
-//!         .map_err(|e| AuthError::UserNotFound(e.to_string()))?;
-//!
-//!         Ok(AuthData {
-//!             id: row.id,
-//!             username: row.username,
-//!             is_verified: row.is_verified,
-//!             email: row.email,
-//!             password_hash: row.password_hash,
-//!             role: Role::User, // Assuming default role, modify as needed
-//!             mfa_enabled: false,
-//!             mfa_type: None,
-//!             totp_secret: None,
-//!             email_otp: None,
-//!             backup_codes: None,
-//!             mfa_recovery_codes_used: None,
-//!             password_reset_token: None,
-//!             password_reset_expiry: None,
-//!             email_verification_token: None,
-//!             email_verification_expiry: None,
-//!             last_login_at: None,
-//!             failed_login_attempts: 0,
-//!             account_locked_until: None,
-//!             refresh_token: None,
-//!             refresh_token_expiry: None,
-//!             last_password_change: None,
-//!             password_history: None,
-//!         })
-//!     }
-//!
-//!     async fn update_user(&self, user: UpdateUser<()>) -> Result<AuthData<()>, AuthError> {
-//!         let row = sqlx::query!(
-//!             "UPDATE users SET username = $1, email = $2 WHERE id = $3 RETURNING id, username, email, password_hash, is_verified",
-//!             user.username,
-//!             user.email,
-//!             user.id
-//!         )
-//!         .fetch_one(&self.pool)
-//!         .await
-//!         .map_err(|e| AuthError::DatabaseError(e.to_string()))?;
-//!
-//!         Ok(AuthData {
-//!             id: row.id,
-//!             username: row.username,
-//!             is_verified: row.is_verified,
-//!             email: row.email,
-//!             password_hash: row.password_hash,
-//!             role: user.role.unwrap_or_default(),
-//!             mfa_enabled: false,
-//!             mfa_type: None,
-//!             totp_secret: None,
-//!             email_otp: None,
-//!             backup_codes: None,
-//!             mfa_recovery_codes_used: None,
-//!             password_reset_token: None,
-//!             password_reset_expiry: None,
-//!             email_verification_token: None,
-//!             email_verification_expiry: None,
-//!             last_login_at: None,
-//!             failed_login_attempts: 0,
-//!             account_locked_until: None,
-//!             refresh_token: None,
-//!             refresh_token_expiry: None,
-//!             last_password_change: None,
-//!             password_history: None,
-//!         })
-//!     }
-//!
-//!     async fn delete_user(&self, email: &str) -> Result<(), AuthError> {
-//!         let result = sqlx::query!("DELETE FROM users WHERE email = $1", email)
-//!             .execute(&self.pool)
-//!             .await
-//!             .map_err(|e| AuthError::DatabaseError(e.to_string()))?;
-//!
-//!         if result.rows_affected() == 0 {
-//!             return Err(AuthError::UserNotFound("User not found".to_string()));
-//!         }
-//!         Ok(())
-//!     }
-//! }
-//!
-//! #[tokio::main]
-//! async fn main() -> Result<(), AuthError> {
-//!     // Initialize the PostgreSQL connection pool
-//!     let pool = PgPool::connect("postgres://user:password@localhost/database").await?;
-//!
-//!     // Create a new PostgresUserRepo instance
-//!     let user_repo = PostgresUserRepo { pool };
-//!
-//!     // Find a user by ID
-//!     let user = user_repo.find_user_by_id("user_id").await?;
-//!     println!("Found user by ID: {:?}", user);
-//!
-//!     // Update a user
-//!     let updated_user = UpdateUser {
-//!         id: "user_id".to_string(),
-//!         username: Some("new_username".to_string()),
-//!         email: Some("new_email@example.com".to_string()),
-//!         role: None, // Optional: Update role if needed
-//!     };
-//!     let updated_user = user_repo.update_user(updated_user).await?;
-//!     println!("Updated user: {:?}", updated_user);
-//!
-//!     // Delete a user
-//!     user_repo.delete_user("new_email@example.com").await?;
-//!     println!("User deleted successfully");
-//!
-//!     Ok(())
-//! }
-//! ```
 //! ## Modules
 //!
 //! - [`email`](crate::email) - Email-based authentication and verification.
@@ -149,6 +20,47 @@
 //! - [`rbac`](crate::rbac) - Role-based access control.
 //! - [`security`](crate::security) - Account security and password policies.
 //! - [`error`](crate::error) - Authentication error types.
+//!
+//! ## Examples
+//!
+//! ### Basic JWT Authentication
+//! ```rust
+//! use authcraft::jwt::{Claims, JwtConfig};
+//! use chrono::{Utc, Duration};
+//!
+//! let config = JwtConfig::new("my_secret_key".to_string(), Duration::hours(1));
+//! let claims = Claims::new("user_id".to_string(), Utc::now() + Duration::hours(1));
+//! let token = config.encode(&claims).expect("Failed to create token");
+//! println!("Generated token: {}", token);
+//! ```
+//!
+//! ### Email Verification
+//! ```rust
+//! use authcraft::email::{send_verification_email, EmailConfig};
+//!
+//! let email_config = EmailConfig::new("smtp.example.com", "user@example.com", "password");
+//! send_verification_email(&email_config, "recipient@example.com", "verification_token");
+//! ```
+//!
+//! ### Multi-Factor Authentication (MFA)
+//! ```rust
+//! use authcraft::mfa::{generate_totp_secret, verify_totp};
+//!
+//! let secret = generate_totp_secret();
+//! println!("Generated TOTP secret: {}", secret);
+//! let valid = verify_totp(&secret, "123456");
+//! println!("TOTP verification: {}", valid);
+//! ```
+//!
+//! ### Role-Based Access Control (RBAC)
+//! ```rust
+//! use authcraft::rbac::{Role, Permission};
+//!
+//! let role = Role::Admin;
+//! let permission = Permission::Write;
+//! println!("Role {:?} has permission {:?}: {}", role, permission, role.has_permission(&permission));
+//! ```
+
 #[cfg(feature = "email")]
 pub mod email;
 #[allow(unused)]
@@ -164,6 +76,9 @@ pub mod mfa;
 #[cfg(feature = "rbac")]
 pub mod rbac;
 
+#[cfg(feature = "session")]
+pub mod sessions;
+
 #[cfg(feature = "security")]
 pub mod security;
 use async_trait::*;
@@ -174,15 +89,15 @@ use jwt::{Claims, JwtConfig};
 use mfa::{MfaSettings, MfaType};
 #[cfg(feature = "rbac")]
 use rbac::Role;
+#[cfg(feature = "email")]
 use security::{RequestPasswordResetRequest, ResetPasswordRequest};
 use serde::{Deserialize, Serialize};
-use std::{
-    collections::{HashMap, HashSet},
-    time::SystemTime,
-};
+use serde_json::Value;
+#[cfg(feature = "rbac")]
+use std::collections::HashSet;
+use std::{collections::HashMap, time::SystemTime};
 #[cfg(feature = "email")]
 use tera::Value;
-
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub struct AuthData {
     /// Unique identifier for the user.
@@ -229,7 +144,6 @@ pub struct AuthData {
     #[cfg(feature = "email")]
     pub email_verification_expiry: Option<DateTime<Utc>>,
     /// Timestamp of the last login.
-    #[cfg(feature = "lockout")]
     pub last_login_at: Option<DateTime<Utc>>,
     /// Number of failed login attempts.
     #[cfg(feature = "lockout")]
@@ -238,8 +152,10 @@ pub struct AuthData {
     #[cfg(feature = "lockout")]
     pub account_locked_until: Option<DateTime<Utc>>,
     /// Refresh token.
+    #[cfg(feature = "session")]
     pub refresh_token: Option<String>,
     /// Expiry time of the refresh token.
+    #[cfg(feature = "session")]
     pub refresh_token_expiry: Option<DateTime<Utc>>,
     /// Timestamp of the last password change.
     pub last_password_change: Option<DateTime<Utc>>,
@@ -730,6 +646,7 @@ pub trait UserRepository: Send + Sync {
     ///     }
     /// }
     /// ```
+    #[cfg(feature = "mfa")]
     async fn enable_mfa(&self, user_id: &str, method: MfaType) -> Result<(), AuthError>;
 
     /// Disables Multi-Factor Authentication (MFA) for a user.
@@ -779,6 +696,7 @@ pub trait UserRepository: Send + Sync {
     ///     }
     /// }
     /// ```
+    #[cfg(feature = "mfa")]
     async fn disable_mfa(&self, user_id: &str) -> Result<(), AuthError>;
     /// Generates a new TOTP secret for a user.
     ///
@@ -798,6 +716,8 @@ pub trait UserRepository: Send + Sync {
     ///     println!("Generated TOTP Secret: {}", totp_secret);
     /// }
     /// ```
+    #[cfg(feature = "mfa")]
+
     async fn create_totp_secret() -> Result<String, AuthError> {
         Ok(MfaSettings::generate_totp_secret()?)
     }
@@ -851,6 +771,7 @@ pub trait UserRepository: Send + Sync {
     ///     }
     /// }
     /// ```
+    #[cfg(feature = "mfa")]
     async fn update_totp_secret(&self, user_id: &str, secret: String) -> Result<String, AuthError>;
 
     /// Generates a new set of backup codes for a user.
@@ -872,6 +793,8 @@ pub trait UserRepository: Send + Sync {
     ///     println!("Generated Backup Codes: {:?}", backup_codes);
     /// }
     /// ```
+    #[cfg(feature = "mfa")]
+
     async fn create_backup_codes() -> Result<Vec<String>, AuthError> {
         Ok(MfaSettings::generate_backup_codes(10, 12)) // Generate 10 backup codes of length 12
     }
@@ -944,6 +867,8 @@ pub trait UserRepository: Send + Sync {
     ///     }
     /// }
     /// ```
+    #[cfg(feature = "mfa")]
+
     async fn use_backup_code(&self, user_id: &str, code: String) -> Result<(), AuthError>;
     /// Initiates the password reset process for a user.
     ///
@@ -1024,6 +949,7 @@ pub trait UserRepository: Send + Sync {
     ///     }
     /// }
     /// ```
+    #[cfg(feature = "email")]
     async fn forgot_password(
         &self,
         jwt: JwtConfig,
@@ -1089,6 +1015,8 @@ pub trait UserRepository: Send + Sync {
     ///     }
     /// }
     /// ```
+    #[cfg(feature = "email")]
+
     async fn verify_reset_token(&self, user_id: &str, token: &str) -> Result<bool, AuthError>;
     /// Resets the user's password.
     ///
@@ -1180,6 +1108,8 @@ pub trait UserRepository: Send + Sync {
     ///     }
     /// }
     /// ```
+    #[cfg(feature = "email")]
+
     async fn reset_password(
         &self,
         user_id: &str,
@@ -1253,6 +1183,7 @@ pub trait UserRepository: Send + Sync {
     ///     Ok(())
     /// }
     /// ```
+    #[cfg(feature = "session")]
     async fn increment_failed_login_attempts(&self, user_id: &str) -> Result<(), AuthError>;
     /// Resets the failed login attempt counter for a user.
     ///
@@ -1280,6 +1211,7 @@ pub trait UserRepository: Send + Sync {
     ///     Ok(())
     /// }
     /// ```
+    #[cfg(feature = "session")]
     async fn reset_failed_login_attempts(&self, user_id: &str) -> Result<(), AuthError>;
     /// Locks a user's account until a specified time.
     ///
@@ -1312,6 +1244,8 @@ pub trait UserRepository: Send + Sync {
     ///     Ok(())
     /// }
     /// ```
+    #[cfg(feature = "session")]
+
     async fn lock_account(&self, user_id: &str, until: SystemTime) -> Result<(), AuthError>;
     /// Unlocks a user's account.
     ///
@@ -1338,6 +1272,8 @@ pub trait UserRepository: Send + Sync {
     ///     Ok(())
     /// }
     /// ```
+    #[cfg(feature = "session")]
+
     async fn unlock_account(&self, user_id: &str) -> Result<(), AuthError>;
 
     // Refresh token
@@ -1380,6 +1316,8 @@ pub trait UserRepository: Send + Sync {
     ///     Ok(())
     /// }
     /// ```
+    #[cfg(feature = "session")]
+
     async fn update_refresh_token(
         &self,
         user_id: &str,
@@ -1411,6 +1349,8 @@ pub trait UserRepository: Send + Sync {
     ///     Ok(())
     /// }
     /// ```
+    #[cfg(feature = "session")]
+
     async fn clear_refresh_token(&self, user_id: &str) -> Result<(), AuthError>;
 
     // Security methods
@@ -1479,6 +1419,7 @@ pub trait UserRepository: Send + Sync {
     ///     Ok(())
     /// }
     /// ```
+    #[cfg(feature = "rbac")]
     async fn assign_role_to_user(&self, user_id: &str, role: Role);
 
     /// Removes a role from a user.
@@ -1507,6 +1448,7 @@ pub trait UserRepository: Send + Sync {
     ///     Ok(())
     /// }
     /// ```
+    #[cfg(feature = "rbac")]
     async fn remove_role_from_user(&self, user_id: &str, role_name: &str);
 
     /// Checks if a user has a specific permission.
@@ -1517,6 +1459,7 @@ pub trait UserRepository: Send + Sync {
     ///
     /// # Returns
     /// * `true` if the user has the permission, `false` otherwise.
+    #[cfg(feature = "rbac")]
     async fn user_has_permission(&self, user_id: &str, permission: &str) -> bool;
 
     /// Retrieves all roles assigned to a user.
@@ -1526,6 +1469,7 @@ pub trait UserRepository: Send + Sync {
     ///
     /// # Returns
     /// * A vector containing the user's assigned roles.
+    #[cfg(feature = "rbac")]
     async fn get_user_roles(&self, user_id: &str) -> Vec<Role>;
 
     /// Retrieves all permissions assigned to a user (merged from roles).
@@ -1535,6 +1479,7 @@ pub trait UserRepository: Send + Sync {
     ///
     /// # Returns
     /// * A `HashSet` containing all permissions the user has.
+    #[cfg(feature = "rbac")]
     async fn get_user_permissions(&self, user_id: &str) -> HashSet<String>;
 }
 

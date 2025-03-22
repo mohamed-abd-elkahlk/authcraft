@@ -52,7 +52,7 @@
 //! }
 //! ```
 
-use crate::error::AuthError;
+use crate::error::AuthCraftError;
 use crate::jwt::JwtConfig;
 use chrono::{Duration, Utc};
 use jsonwebtoken::{EncodingKey, Header, encode};
@@ -104,14 +104,14 @@ impl SessionManager {
     /// * `roles` - The user's roles.
     ///
     /// # Returns
-    /// * `Result<String, AuthError>` - The generated JWT or an authentication error.
+    /// * `Result<String,AuthCraftError>` - The generated JWT or an authentication error.
     pub fn issue_access_token<C: Serialize>(
         &self,
         config: &JwtConfig,
         sub: String,
         payload: Option<C>,
         roles: Vec<String>,
-    ) -> Result<String, AuthError> {
+    ) -> Result<String, AuthCraftError> {
         let expiration = Utc::now()
             .checked_add_signed(Duration::minutes(15))
             .expect("Invalid timestamp")
@@ -131,7 +131,7 @@ impl SessionManager {
             &claims,
             &EncodingKey::from_secret(config.secret.as_ref()),
         )
-        .map_err(|e| AuthError::CustomError(e.to_string()))?;
+        .map_err(|e| AuthCraftError::CustomError(e.to_string()))?;
         Ok(token)
     }
 
@@ -142,12 +142,12 @@ impl SessionManager {
     /// * `sub` - The user ID.
     ///
     /// # Returns
-    /// * `Result<String, AuthError>` - The generated JWT or an authentication error.
+    /// * `Result<String,AuthCraftError>` - The generated JWT or an authentication error.
     pub fn issue_refresh_token(
         &self,
         config: &JwtConfig,
         sub: String,
-    ) -> Result<String, AuthError> {
+    ) -> Result<String, AuthCraftError> {
         let expiration = Utc::now()
             .checked_add_signed(Duration::days(7))
             .expect("Invalid timestamp")
@@ -167,7 +167,7 @@ impl SessionManager {
             &claims,
             &EncodingKey::from_secret(config.secret.as_ref()),
         )
-        .map_err(|e| AuthError::CustomError(e.to_string()))?;
+        .map_err(|e| AuthCraftError::CustomError(e.to_string()))?;
         Ok(token)
     }
 

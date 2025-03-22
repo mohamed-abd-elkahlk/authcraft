@@ -83,7 +83,7 @@ pub mod sessions;
 pub mod security;
 use async_trait::*;
 use chrono::{DateTime, Utc};
-use error::AuthError;
+use error::AuthCraftError;
 use jwt::{Claims, JwtConfig};
 #[cfg(feature = "mfa")]
 use mfa::{MfaSettings, MfaType};
@@ -96,8 +96,7 @@ use serde_json::Value;
 #[cfg(feature = "rbac")]
 use std::collections::HashSet;
 use std::{collections::HashMap, time::SystemTime};
-#[cfg(feature = "email")]
-use tera::Value;
+
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub struct AuthData {
     /// Unique identifier for the user.
@@ -242,7 +241,7 @@ pub trait UserRepository: Send + Sync {
     ///
     /// ## Example Usage (Using sqlx with PostgreSQL)
     /// ```rust
-    /// use authcraft::{AuthData, AuthError, Role, UserRepository};
+    /// use authcraft::{AuthData,AuthCraftError, Role, UserRepository};
     /// use async_trait::async_trait;
     /// use sqlx::PgPool;
     /// use std::collections::HashMap;
@@ -254,14 +253,14 @@ pub trait UserRepository: Send + Sync {
     ///
     /// #[async_trait]
     /// impl UserRepository<()> for PostgresUserRepo {
-    ///     async fn find_user_by_id(&self, id: &str) -> Result<AuthData<()>, AuthError> {
+    ///     async fn find_user_by_id(&self, id: &str) -> Result<AuthData<()>,AuthCraftError> {
     ///         let row = sqlx::query!(
     ///             "SELECT id, username, email, password_hash, is_verified FROM users WHERE id = $1",
     ///             id
     ///         )
     ///         .fetch_one(&self.pool)
     ///         .await
-    ///         .map_err(|e| AuthError::UserNotFound(e.to_string))?;
+    ///         .map_err(|e|AuthCraftError::UserNotFound(e.to_string))?;
     ///
     ///         Ok(AuthData {
     ///             id: row.id,
@@ -301,14 +300,14 @@ pub trait UserRepository: Send + Sync {
     ///     }
     /// }
     /// ```
-    async fn find_user_by_id(&self, id: &str) -> Result<AuthData, AuthError>;
+    async fn find_user_by_id(&self, id: &str) -> Result<AuthData, AuthCraftError>;
     /// Finds a user by their email.
     ///
     /// This method searches for a user in the repository using their unique email.
     ///
     /// ## Example Usage (Using sqlx with PostgreSQL)
     /// ```rust
-    /// use authcraft::{AuthData, AuthError, Role, UserRepository};
+    /// use authcraft::{AuthData,AuthCraftError, Role, UserRepository};
     /// use async_trait::async_trait;
     /// use sqlx::PgPool;
     /// use std::collections::HashMap;
@@ -320,14 +319,14 @@ pub trait UserRepository: Send + Sync {
     ///
     /// #[async_trait]
     /// impl UserRepository<()> for PostgresUserRepo {
-    ///     async fn find_user_by_id(&self, email: &str) -> Result<AuthData<()>, AuthError> {
+    ///     async fn find_user_by_id(&self, email: &str) -> Result<AuthData<()>,AuthCraftError> {
     ///         let row = sqlx::query!(
     ///             "SELECT id, username, email, password_hash, is_verified FROM users WHERE id = $1",
     ///             id
     ///         )
     ///         .fetch_one(&self.pool)
     ///         .await
-    ///         .map_err(|e| AuthError::UserNotFound(e.to_string))?;
+    ///         .map_err(|e|AuthCraftError::UserNotFound(e.to_string))?;
     ///
     ///         Ok(AuthData {
     ///             id: row.id,
@@ -367,7 +366,7 @@ pub trait UserRepository: Send + Sync {
     ///     }
     /// }
     /// ```
-    async fn find_user_by_email(&self, email: &str) -> Result<AuthData, AuthError>;
+    async fn find_user_by_email(&self, email: &str) -> Result<AuthData, AuthCraftError>;
     /// Creates a new user in the system.
     ///
     /// This function takes a `RegisterUserRequest`, hashes the provided password using `hash_password`,
@@ -376,7 +375,7 @@ pub trait UserRepository: Send + Sync {
     ///
     /// ## Example Usage (Using sqlx with PostgreSQL)
     /// ```rust
-    /// use authcraft::{RegisterUserRequest, AuthData, AuthError, Role, UserRepository, security::hash_password};
+    /// use authcraft::{RegisterUserRequest, AuthData,AuthCraftError, Role, UserRepository, security::hash_password};
     /// use async_trait::async_trait;
     /// use sqlx::PgPool;
     ///
@@ -386,7 +385,7 @@ pub trait UserRepository: Send + Sync {
     ///
     /// #[async_trait]
     /// impl UserRepository<()> for PostgresUserRepo {
-    ///     async fn create_user(&self, user: RegisterUserRequest) -> Result<AuthData<()>, AuthError> {
+    ///     async fn create_user(&self, user: RegisterUserRequest) -> Result<AuthData<()>,AuthCraftError> {
     ///         // Hash the password securely
     ///         let hashed_password = hash_password(&user.password)?;
     ///
@@ -401,7 +400,7 @@ pub trait UserRepository: Send + Sync {
     ///         )
     ///         .fetch_one(&self.pool)
     ///         .await
-    ///         .map_err(|e| AuthError::DatabaseError(e.to_string()))?;
+    ///         .map_err(|e|AuthCraftError::DatabaseError(e.to_string()))?;
     ///
     ///         Ok(AuthData {
     ///             id: row.id,
@@ -431,7 +430,7 @@ pub trait UserRepository: Send + Sync {
     ///     }
     /// }
     /// ```
-    async fn create_user(&self, user: RegisterUserRequest) -> Result<AuthData, AuthError>;
+    async fn create_user(&self, user: RegisterUserRequest) -> Result<AuthData, AuthCraftError>;
     /// Updates an existing user in the system.
     ///
     /// This function takes an `UpdateUser<U>` struct, modifies the corresponding user record in the database,
@@ -439,7 +438,7 @@ pub trait UserRepository: Send + Sync {
     ///
     /// ## Example Usage (Using sqlx with PostgreSQL)
     /// ```rust
-    /// use authcraft::{UpdateUser, AuthData, AuthError, UserRepository};
+    /// use authcraft::{UpdateUser, AuthData,AuthCraftError, UserRepository};
     /// use async_trait::async_trait;
     /// use sqlx::PgPool;
     ///
@@ -449,7 +448,7 @@ pub trait UserRepository: Send + Sync {
     ///
     /// #[async_trait]
     /// impl UserRepository<()> for PostgresUserRepo {
-    ///     async fn update_user(&self, user: UpdateUser<()>) -> Result<AuthData<()>, AuthError> {
+    ///     async fn update_user(&self, user: UpdateUser<()>) -> Result<AuthData<()>,AuthCraftError> {
     ///         let row = sqlx::query!(
     ///             "UPDATE users SET username = $1, email = $2 WHERE id = $3 RETURNING id, username, email, password_hash, is_verified",
     ///             user.username,
@@ -458,7 +457,7 @@ pub trait UserRepository: Send + Sync {
     ///         )
     ///         .fetch_one(&self.pool)
     ///         .await
-    ///         .map_err(|e| AuthError::DatabaseError(e.to_string()))?;
+    ///         .map_err(|e|AuthCraftError::DatabaseError(e.to_string()))?;
     ///
     ///         Ok(AuthData {
     ///             id: row.id,
@@ -488,7 +487,7 @@ pub trait UserRepository: Send + Sync {
     ///     }
     /// }
     /// ```
-    async fn update_user(&self, user: UpdateUser) -> Result<AuthData, AuthError>;
+    async fn update_user(&self, user: UpdateUser) -> Result<AuthData, AuthCraftError>;
     /// Deletes a user from the system by their email.
     ///
     /// This function removes a user from the database based on their email address.
@@ -506,11 +505,11 @@ pub trait UserRepository: Send + Sync {
     ///
     /// #[async_trait]
     /// impl UserRepository<()> for PostgresUserRepo {
-    ///     async fn delete_user(&self, email: &str) -> Result<(), AuthError> {
+    ///     async fn delete_user(&self, email: &str) -> Result<(),AuthCraftError> {
     ///         let result = sqlx::query!("DELETE FROM users WHERE email = $1", email)
     ///             .execute(&self.pool)
     ///             .await
-    ///             .map_err(|e| AuthError::DatabaseError(e.to_string()))?;
+    ///             .map_err(|e|AuthCraftError::DatabaseError(e.to_string()))?;
     ///
     ///         if result.rows_affected() == 0 {
     ///             return Err(AuthError::UserNotFound("User not found".to_string()));
@@ -519,7 +518,7 @@ pub trait UserRepository: Send + Sync {
     ///     }
     /// }
     /// ```
-    async fn delete_user(&self, email: &str) -> Result<(), AuthError>;
+    async fn delete_user(&self, email: &str) -> Result<(), AuthCraftError>;
     /// Creates a verification token for a user.
     ///
     /// This function generates a verification token and associates it with the user. The token
@@ -527,7 +526,7 @@ pub trait UserRepository: Send + Sync {
     ///
     /// ## Example Usage (Using sqlx with PostgreSQL and lettre for email sending)
     /// ```rust
-    /// use authcraft::{AuthData, AuthError, JwtConfig, UserRepository};
+    /// use authcraft::{AuthData,AuthCraftError, JwtConfig, UserRepository};
     /// use async_trait::async_trait;
     /// use sqlx::PgPool;
     /// use lettre::AsyncSmtpTransport;
@@ -543,19 +542,19 @@ pub trait UserRepository: Send + Sync {
     ///         &self,
     ///         user_id: &str,
     ///         jwt: JwtConfig,
-    ///     ) -> Result<(String, AuthData), AuthError> {
+    ///     ) -> Result<(String, AuthData),AuthCraftError> {
     ///         let token = jwt.issue_jwt(user_id,jwt,())?;
     ///
     ///         let user = sqlx::query!("SELECT email, username FROM users WHERE id = $1", user_id)
     ///             .fetch_one(&self.pool)
     ///             .await
-    ///             .map_err(|e| AuthError::UserNotFound(e.to_string()))?;
+    ///             .map_err(|e|AuthCraftError::UserNotFound(e.to_string()))?;
     ///
     ///         let verification_link = format!("https://example.com/verify?token={}", token);
     ///         self.email_service
     ///             .send_verification_email(&user.email, &user.username, &verification_link)
     ///             .await
-    ///             .map_err(|e| AuthError::EmailSendFailed(e.to_string()))?;
+    ///             .map_err(|e|AuthCraftError::EmailSendFailed(e.to_string()))?;
     ///
     ///     }
     /// }
@@ -565,7 +564,7 @@ pub trait UserRepository: Send + Sync {
         &self,
         user_id: &str,
         jwt: JwtConfig,
-    ) -> Result<(), AuthError>;
+    ) -> Result<(), AuthCraftError>;
 
     /// Verifies a user's email using a verification token.
     ///
@@ -584,19 +583,20 @@ pub trait UserRepository: Send + Sync {
     ///
     /// #[async_trait]
     /// impl UserRepository<()> for PostgresUserRepo {
-    ///     async fn verify_email(&self, token: &str, jwt: JwtConfig) -> Result<Claims<()>, AuthError> {
+    ///     async fn verify_email(&self, token: &str, jwt: JwtConfig) -> Result<Claims<()>,AuthCraftError> {
     ///         let claims = jwt.verify_token::<()>(&token)?;
     ///
     ///         sqlx::query!("UPDATE users SET is_verified = TRUE WHERE id = $1", claims.sub)
     ///             .execute(&self.pool)
     ///             .await
-    ///             .map_err(|e| AuthError::DatabaseError(e.to_string()))?;
+    ///             .map_err(|e|AuthCraftError::DatabaseError(e.to_string()))?;
     ///
     ///         Ok(claims)
     ///     }
     /// }
     /// ```
-    async fn verify_email(&self, token: &str, jwt: JwtConfig) -> Result<Claims<()>, AuthError>;
+    async fn verify_email(&self, token: &str, jwt: JwtConfig)
+    -> Result<Claims<()>, AuthCraftError>;
     /// Enables Multi-Factor Authentication (MFA) for a user.
     ///
     /// This function enables MFA for a user by specifying the authentication method.
@@ -621,7 +621,7 @@ pub trait UserRepository: Send + Sync {
     ///
     /// #[async_trait]
     /// impl UserRepository<()> for PostgresUserRepo {
-    ///     async fn enable_mfa(&self, user_id: &str, method: MfaType) -> Result<(), AuthError> {
+    ///     async fn enable_mfa(&self, user_id: &str, method: MfaType) -> Result<(),AuthCraftError> {
     ///         sqlx::query!(
     ///             "UPDATE users SET mfa_enabled = TRUE, mfa_type = $1 WHERE id = $2",
     ///             method as MfaType,
@@ -629,7 +629,7 @@ pub trait UserRepository: Send + Sync {
     ///         )
     ///         .execute(&self.pool)
     ///         .await
-    ///         .map_err(|e| AuthError::DatabaseError(e.to_string()))?;
+    ///         .map_err(|e|AuthCraftError::DatabaseError(e.to_string()))?;
     ///
     ///         Ok(())
     ///     }
@@ -647,7 +647,7 @@ pub trait UserRepository: Send + Sync {
     /// }
     /// ```
     #[cfg(feature = "mfa")]
-    async fn enable_mfa(&self, user_id: &str, method: MfaType) -> Result<(), AuthError>;
+    async fn enable_mfa(&self, user_id: &str, method: MfaType) -> Result<(), AuthCraftError>;
 
     /// Disables Multi-Factor Authentication (MFA) for a user.
     ///
@@ -672,14 +672,14 @@ pub trait UserRepository: Send + Sync {
     ///
     /// #[async_trait]
     /// impl UserRepository<()> for PostgresUserRepo {
-    ///     async fn disable_mfa(&self, user_id: &str) -> Result<(), AuthError> {
+    ///     async fn disable_mfa(&self, user_id: &str) -> Result<(),AuthCraftError> {
     ///         sqlx::query!(
     ///             "UPDATE users SET mfa_enabled = FALSE, mfa_type = NULL WHERE id = $1",
     ///             user_id
     ///         )
     ///         .execute(&self.pool)
     ///         .await
-    ///         .map_err(|e| AuthError::DatabaseError(e.to_string()))?;
+    ///         .map_err(|e|AuthCraftError::DatabaseError(e.to_string()))?;
     ///
     ///         Ok(())
     ///     }
@@ -697,7 +697,7 @@ pub trait UserRepository: Send + Sync {
     /// }
     /// ```
     #[cfg(feature = "mfa")]
-    async fn disable_mfa(&self, user_id: &str) -> Result<(), AuthError>;
+    async fn disable_mfa(&self, user_id: &str) -> Result<(), AuthCraftError>;
     /// Generates a new TOTP secret for a user.
     ///
     /// This function creates a new TOTP secret using the SHA1 algorithm and a 30-second time step.
@@ -718,7 +718,7 @@ pub trait UserRepository: Send + Sync {
     /// ```
     #[cfg(feature = "mfa")]
 
-    async fn create_totp_secret() -> Result<String, AuthError> {
+    async fn create_totp_secret() -> Result<String, AuthCraftError> {
         Ok(MfaSettings::generate_totp_secret()?)
     }
 
@@ -746,7 +746,7 @@ pub trait UserRepository: Send + Sync {
     ///
     /// #[async_trait]
     /// impl UserRepository<()> for PostgresUserRepo {
-    ///     async fn update_totp_secret(&self, user_id: &str, secret: String) -> Result<String, AuthError> {
+    ///     async fn update_totp_secret(&self, user_id: &str, secret: String) -> Result<String,AuthCraftError> {
     ///         sqlx::query!(
     ///             "UPDATE users SET mfa_enabled = TRUE, mfa_type = 'Totp', totp_secret = $1 WHERE id = $2",
     ///             secret,
@@ -754,7 +754,7 @@ pub trait UserRepository: Send + Sync {
     ///         )
     ///         .execute(&self.pool)
     ///         .await
-    ///         .map_err(|e| AuthError::DatabaseError(e.to_string()))?;
+    ///         .map_err(|e|AuthCraftError::DatabaseError(e.to_string()))?;
     ///
     ///         Ok(secret)
     ///     }
@@ -772,7 +772,11 @@ pub trait UserRepository: Send + Sync {
     /// }
     /// ```
     #[cfg(feature = "mfa")]
-    async fn update_totp_secret(&self, user_id: &str, secret: String) -> Result<String, AuthError>;
+    async fn update_totp_secret(
+        &self,
+        user_id: &str,
+        secret: String,
+    ) -> Result<String, AuthCraftError>;
 
     /// Generates a new set of backup codes for a user.
     ///
@@ -795,7 +799,7 @@ pub trait UserRepository: Send + Sync {
     /// ```
     #[cfg(feature = "mfa")]
 
-    async fn create_backup_codes() -> Result<Vec<String>, AuthError> {
+    async fn create_backup_codes() -> Result<Vec<String>, AuthCraftError> {
         Ok(MfaSettings::generate_backup_codes(10, 12)) // Generate 10 backup codes of length 12
     }
 
@@ -828,7 +832,7 @@ pub trait UserRepository: Send + Sync {
     ///
     /// #[async_trait]
     /// impl UserRepository<()> for PostgresUserRepo {
-    ///     async fn use_backup_code(&self, user_id: &str, code: String) -> Result<(), AuthError> {
+    ///     async fn use_backup_code(&self, user_id: &str, code: String) -> Result<(),AuthCraftError> {
     ///         // Fetch the backup codes from the database
     ///         let user = sqlx::query!(
     ///             "SELECT backup_codes FROM users WHERE id = $1",
@@ -836,11 +840,11 @@ pub trait UserRepository: Send + Sync {
     ///         )
     ///         .fetch_one(&self.pool)
     ///         .await
-    ///         .map_err(|e| AuthError::DatabaseError(e.to_string()))?;
+    ///         .map_err(|e|AuthCraftError::DatabaseError(e.to_string()))?;
     ///
     ///         // If backup_codes is stored as JSONB, use serde_json
     ///         let mut backup_codes: Vec<String> = serde_json::from_value(user.backup_codes)
-    ///             .map_err(|_| AuthError::InvalidBackupCode("Failed to parse backup codes".to_string()))?;
+    ///             .map_err(|_|AuthCraftError::InvalidBackupCode("Failed to parse backup codes".to_string()))?;
     ///
     ///         // If stored as TEXT[], fetch as Vec<String> directly (DO NOT use serde_json)
     ///         // let backup_codes: Vec<String> = user.backup_codes;
@@ -858,7 +862,7 @@ pub trait UserRepository: Send + Sync {
     ///             )
     ///             .execute(&self.pool)
     ///             .await
-    ///             .map_err(|e| AuthError::DatabaseError(e.to_string()))?;
+    ///             .map_err(|e|AuthCraftError::DatabaseError(e.to_string()))?;
     ///
     ///             Ok(())
     ///         } else {
@@ -869,7 +873,7 @@ pub trait UserRepository: Send + Sync {
     /// ```
     #[cfg(feature = "mfa")]
 
-    async fn use_backup_code(&self, user_id: &str, code: String) -> Result<(), AuthError>;
+    async fn use_backup_code(&self, user_id: &str, code: String) -> Result<(), AuthCraftError>;
     /// Initiates the password reset process for a user.
     ///
     /// This function generates a password reset token, stores it in the database,
@@ -899,14 +903,14 @@ pub trait UserRepository: Send + Sync {
     ///         &self,
     ///         jwt: JwtConfig,
     ///         email: RequestPasswordResetRequest
-    ///     ) -> Result<(), AuthError> {
+    ///     ) -> Result<(),AuthCraftError> {
     ///         let user = sqlx::query!(
     ///             "SELECT id FROM users WHERE email = $1",
     ///             email.email
     ///         )
     ///         .fetch_optional(&self.pool)
     ///         .await
-    ///         .map_err(|e| AuthError::DatabaseError(e.to_string()))?;
+    ///         .map_err(|e|AuthCraftError::DatabaseError(e.to_string()))?;
     ///
     ///         let user_id = match user {
     ///             Some(u) => u.id,
@@ -922,14 +926,14 @@ pub trait UserRepository: Send + Sync {
     ///         )
     ///         .execute(&self.pool)
     ///         .await
-    ///         .map_err(|e| AuthError::DatabaseError(e.to_string()))?;
+    ///         .map_err(|e|AuthCraftError::DatabaseError(e.to_string()))?;
     ///
     ///         let reset_link = format!("https://yourapp.com/reset-password?token={}", reset_token);
     ///
     ///         self.email_service
     ///             .send_verification_email(&email.email, &username, &reset_link)
     ///             .await
-    ///             .map_err(|e| AuthError::EmailError(e.to_string()))?;
+    ///             .map_err(|e|AuthCraftError::EmailError(e.to_string()))?;
     ///
     ///         Ok(())
     ///     }
@@ -954,7 +958,7 @@ pub trait UserRepository: Send + Sync {
         &self,
         jwt: JwtConfig,
         email: RequestPasswordResetRequest,
-    ) -> Result<(), AuthError>;
+    ) -> Result<(), AuthCraftError>;
 
     /// Verifies a password reset token for a user.
     ///
@@ -981,14 +985,14 @@ pub trait UserRepository: Send + Sync {
     ///
     /// #[async_trait]
     /// impl UserRepository<()> for PostgresUserRepo {
-    ///     async fn verify_reset_token(&self, user_id: &str, token: &str) -> Result<bool, AuthError> {
+    ///     async fn verify_reset_token(&self, user_id: &str, token: &str) -> Result<bool,AuthCraftError> {
     ///         let record = sqlx::query!(
     ///             "SELECT created_at FROM password_resets WHERE user_id = $1 AND token = $2",
     ///             user_id, token
     ///         )
     ///         .fetch_optional(&self.pool)
     ///         .await
-    ///         .map_err(|e| AuthError::DatabaseError(e.to_string()))?;
+    ///         .map_err(|e|AuthCraftError::DatabaseError(e.to_string()))?;
     ///
     ///         match record {
     ///             Some(r) => {
@@ -1017,7 +1021,7 @@ pub trait UserRepository: Send + Sync {
     /// ```
     #[cfg(feature = "email")]
 
-    async fn verify_reset_token(&self, user_id: &str, token: &str) -> Result<bool, AuthError>;
+    async fn verify_reset_token(&self, user_id: &str, token: &str) -> Result<bool, AuthCraftError>;
     /// Resets the user's password.
     ///
     /// This function verifies the reset token, updates the user's password in the database,
@@ -1048,7 +1052,7 @@ pub trait UserRepository: Send + Sync {
     ///         &self,
     ///         user_id: &str,
     ///         request: ResetPasswordRequest,
-    ///     ) -> Result<(), AuthError> {
+    ///     ) -> Result<(),AuthCraftError> {
     ///         // Check if the token is valid
     ///         let reset_entry = sqlx::query!(
     ///             "SELECT token FROM password_resets WHERE user_id = $1",
@@ -1056,7 +1060,7 @@ pub trait UserRepository: Send + Sync {
     ///         )
     ///         .fetch_optional(&self.pool)
     ///         .await
-    ///         .map_err(|e| AuthError::DatabaseError(e.to_string()))?;
+    ///         .map_err(|e|AuthCraftError::DatabaseError(e.to_string()))?;
     ///
     ///         match reset_entry {
     ///             Some(entry) if entry.token == request.token => (),
@@ -1067,7 +1071,7 @@ pub trait UserRepository: Send + Sync {
     ///         let salt: [u8; 16] = rand::thread_rng().gen();
     ///         let config = Config::default();
     ///         let hashed_password = hash_password(request.new_password.)
-    ///             .map_err(|_| AuthError::HashingError)?;
+    ///             .map_err(|_|AuthCraftError::HashingError)?;
     ///
     ///         // Update the user's password
     ///         sqlx::query!(
@@ -1077,7 +1081,7 @@ pub trait UserRepository: Send + Sync {
     ///         )
     ///         .execute(&self.pool)
     ///         .await
-    ///         .map_err(|e| AuthError::DatabaseError(e.to_string()))?;
+    ///         .map_err(|e|AuthCraftError::DatabaseError(e.to_string()))?;
     ///
     ///         // Remove the reset token
     ///         sqlx::query!(
@@ -1086,7 +1090,7 @@ pub trait UserRepository: Send + Sync {
     ///         )
     ///         .execute(&self.pool)
     ///         .await
-    ///         .map_err(|e| AuthError::DatabaseError(e.to_string()))?;
+    ///         .map_err(|e|AuthCraftError::DatabaseError(e.to_string()))?;
     ///
     ///         Ok(())
     ///     }
@@ -1114,7 +1118,7 @@ pub trait UserRepository: Send + Sync {
         &self,
         user_id: &str,
         request: ResetPasswordRequest,
-    ) -> Result<(), AuthError>;
+    ) -> Result<(), AuthCraftError>;
 
     // Session management methods
     /// Updates the last login timestamp for a user.
@@ -1142,7 +1146,7 @@ pub trait UserRepository: Send + Sync {
     ///
     /// #[async_trait]
     /// impl UserRepository<()> for PostgresUserRepo {
-    ///     async fn update_last_login(&self, user_id: &str) -> Result<(), AuthError> {
+    ///     async fn update_last_login(&self, user_id: &str) -> Result<(),AuthCraftError> {
     ///         sqlx::query!(
     ///             "UPDATE users SET last_login = $1 WHERE id = $2",
     ///             Utc::now(),
@@ -1150,13 +1154,13 @@ pub trait UserRepository: Send + Sync {
     ///         )
     ///         .execute(&self.pool)
     ///         .await
-    ///         .map_err(|e| AuthError::DatabaseError(e.to_string()))?;
+    ///         .map_err(|e|AuthCraftError::DatabaseError(e.to_string()))?;
     ///
     ///         Ok(())
     ///     }
     /// }
     /// ```
-    async fn update_last_login(&self, user_id: &str) -> Result<(), AuthError>;
+    async fn update_last_login(&self, user_id: &str) -> Result<(), AuthCraftError>;
     /// Increments the failed login attempt counter for a user.
     ///
     /// This function tracks failed login attempts, which can be used for security
@@ -1171,20 +1175,20 @@ pub trait UserRepository: Send + Sync {
     ///
     /// ## Example Usage
     /// ```rust
-    /// async fn increment_failed_login_attempts(&self, user_id: &str) -> Result<(), AuthError> {
+    /// async fn increment_failed_login_attempts(&self, user_id: &str) -> Result<(),AuthCraftError> {
     ///     sqlx::query!(
     ///         "UPDATE users SET failed_attempts = failed_attempts + 1 WHERE id = $1",
     ///         user_id
     ///     )
     ///     .execute(&self.pool)
     ///     .await
-    ///     .map_err(|e| AuthError::DatabaseError(e.to_string()))?;
+    ///     .map_err(|e|AuthCraftError::DatabaseError(e.to_string()))?;
     ///
     ///     Ok(())
     /// }
     /// ```
     #[cfg(feature = "session")]
-    async fn increment_failed_login_attempts(&self, user_id: &str) -> Result<(), AuthError>;
+    async fn increment_failed_login_attempts(&self, user_id: &str) -> Result<(), AuthCraftError>;
     /// Resets the failed login attempt counter for a user.
     ///
     /// This function clears the failed login attempt count, typically used
@@ -1199,20 +1203,20 @@ pub trait UserRepository: Send + Sync {
     ///
     /// ## Example Usage
     /// ```rust
-    /// async fn reset_failed_login_attempts(&self, user_id: &str) -> Result<(), AuthError> {
+    /// async fn reset_failed_login_attempts(&self, user_id: &str) -> Result<(),AuthCraftError> {
     ///     sqlx::query!(
     ///         "UPDATE users SET failed_attempts = 0 WHERE id = $1",
     ///         user_id
     ///     )
     ///     .execute(&self.pool)
     ///     .await
-    ///     .map_err(|e| AuthError::DatabaseError(e.to_string()))?;
+    ///     .map_err(|e|AuthCraftError::DatabaseError(e.to_string()))?;
     ///
     ///     Ok(())
     /// }
     /// ```
     #[cfg(feature = "session")]
-    async fn reset_failed_login_attempts(&self, user_id: &str) -> Result<(), AuthError>;
+    async fn reset_failed_login_attempts(&self, user_id: &str) -> Result<(), AuthCraftError>;
     /// Locks a user's account until a specified time.
     ///
     /// This function prevents a user from logging in until the specified lockout period expires.
@@ -1229,7 +1233,7 @@ pub trait UserRepository: Send + Sync {
     /// ```rust
     /// use std::time::{SystemTime, UNIX_EPOCH};
     ///
-    /// async fn lock_account(&self, user_id: &str, until: SystemTime) -> Result<(), AuthError> {
+    /// async fn lock_account(&self, user_id: &str, until: SystemTime) -> Result<(),AuthCraftError> {
     ///     let lock_until = until.duration_since(UNIX_EPOCH).unwrap().as_secs() as i64;
     ///
     ///     sqlx::query!(
@@ -1239,14 +1243,14 @@ pub trait UserRepository: Send + Sync {
     ///     )
     ///     .execute(&self.pool)
     ///     .await
-    ///     .map_err(|e| AuthError::DatabaseError(e.to_string()))?;
+    ///     .map_err(|e|AuthCraftError::DatabaseError(e.to_string()))?;
     ///
     ///     Ok(())
     /// }
     /// ```
     #[cfg(feature = "session")]
 
-    async fn lock_account(&self, user_id: &str, until: SystemTime) -> Result<(), AuthError>;
+    async fn lock_account(&self, user_id: &str, until: SystemTime) -> Result<(), AuthCraftError>;
     /// Unlocks a user's account.
     ///
     /// This function removes any lock on the account, allowing the user to log in again.
@@ -1260,21 +1264,21 @@ pub trait UserRepository: Send + Sync {
     ///
     /// ## Example Usage
     /// ```rust
-    /// async fn unlock_account(&self, user_id: &str) -> Result<(), AuthError> {
+    /// async fn unlock_account(&self, user_id: &str) -> Result<(),AuthCraftError> {
     ///     sqlx::query!(
     ///         "UPDATE users SET locked_until = NULL WHERE id = $1",
     ///         user_id
     ///     )
     ///     .execute(&self.pool)
     ///     .await
-    ///     .map_err(|e| AuthError::DatabaseError(e.to_string()))?;
+    ///     .map_err(|e|AuthCraftError::DatabaseError(e.to_string()))?;
     ///
     ///     Ok(())
     /// }
     /// ```
     #[cfg(feature = "session")]
 
-    async fn unlock_account(&self, user_id: &str) -> Result<(), AuthError>;
+    async fn unlock_account(&self, user_id: &str) -> Result<(), AuthCraftError>;
 
     // Refresh token
     /// Updates the refresh token for a user.
@@ -1300,7 +1304,7 @@ pub trait UserRepository: Send + Sync {
     ///     user_id: &str,
     ///     token: String,
     ///     expiry: SystemTime
-    /// ) -> Result<(), AuthError> {
+    /// ) -> Result<(),AuthCraftError> {
     ///     let expiry_timestamp = expiry.duration_since(UNIX_EPOCH).unwrap().as_secs() as i64;
     ///
     ///     sqlx::query!(
@@ -1311,7 +1315,7 @@ pub trait UserRepository: Send + Sync {
     ///     )
     ///     .execute(&self.pool)
     ///     .await
-    ///     .map_err(|e| AuthError::DatabaseError(e.to_string()))?;
+    ///     .map_err(|e|AuthCraftError::DatabaseError(e.to_string()))?;
     ///
     ///     Ok(())
     /// }
@@ -1323,7 +1327,7 @@ pub trait UserRepository: Send + Sync {
         user_id: &str,
         token: String,
         expiry: SystemTime,
-    ) -> Result<(), AuthError>;
+    ) -> Result<(), AuthCraftError>;
     /// Clears the refresh token for a user.
     ///
     /// This function removes the stored refresh token, forcing the user to log in again.
@@ -1337,21 +1341,21 @@ pub trait UserRepository: Send + Sync {
     ///
     /// ## Example Usage
     /// ```rust
-    /// async fn clear_refresh_token(&self, user_id: &str) -> Result<(), AuthError> {
+    /// async fn clear_refresh_token(&self, user_id: &str) -> Result<(),AuthCraftError> {
     ///     sqlx::query!(
     ///         "UPDATE users SET refresh_token = NULL, refresh_token_expiry = NULL WHERE id = $1",
     ///         user_id
     ///     )
     ///     .execute(&self.pool)
     ///     .await
-    ///     .map_err(|e| AuthError::DatabaseError(e.to_string()))?;
+    ///     .map_err(|e|AuthCraftError::DatabaseError(e.to_string()))?;
     ///
     ///     Ok(())
     /// }
     /// ```
     #[cfg(feature = "session")]
 
-    async fn clear_refresh_token(&self, user_id: &str) -> Result<(), AuthError>;
+    async fn clear_refresh_token(&self, user_id: &str) -> Result<(), AuthCraftError>;
 
     // Security methods
     /// Updates the password history for a user.
@@ -1373,7 +1377,7 @@ pub trait UserRepository: Send + Sync {
     ///     &self,
     ///     user_id: &str,
     ///     password_hash: String
-    /// ) -> Result<(), AuthError> {
+    /// ) -> Result<(),AuthCraftError> {
     ///     sqlx::query!(
     ///         "INSERT INTO password_history (user_id, password_hash, changed_at) VALUES ($1, $2, NOW())",
     ///         user_id,
@@ -1381,7 +1385,7 @@ pub trait UserRepository: Send + Sync {
     ///     )
     ///     .execute(&self.pool)
     ///     .await
-    ///     .map_err(|e| AuthError::DatabaseError(e.to_string()))?;
+    ///     .map_err(|e|AuthCraftError::DatabaseError(e.to_string()))?;
     ///
     ///     Ok(())
     /// }
@@ -1390,7 +1394,7 @@ pub trait UserRepository: Send + Sync {
         &self,
         user_id: &str,
         password_hash: String,
-    ) -> Result<(), AuthError>;
+    ) -> Result<(), AuthCraftError>;
     // Role-Based Access Control (RBAC) methods
 
     /// Assigns a role to a user.
@@ -1406,7 +1410,7 @@ pub trait UserRepository: Send + Sync {
     ///     user_id: &str,
     ///     role: RBACRole,
     ///     pool: &PgPool
-    /// ) -> Result<(), AuthError> {
+    /// ) -> Result<(),AuthCraftError> {
     ///     sqlx::query!(
     ///         "INSERT INTO user_roles (user_id, role_name) VALUES ($1, $2)",
     ///         user_id,
@@ -1414,7 +1418,7 @@ pub trait UserRepository: Send + Sync {
     ///     )
     ///     .execute(pool)
     ///     .await
-    ///     .map_err(|e| AuthError::DatabaseError(e.to_string()))?;
+    ///     .map_err(|e|AuthCraftError::DatabaseError(e.to_string()))?;
     ///
     ///     Ok(())
     /// }
@@ -1435,7 +1439,7 @@ pub trait UserRepository: Send + Sync {
     ///     user_id: &str,
     ///     role_name: &str,
     ///     pool: &PgPool
-    /// ) -> Result<(), AuthError> {
+    /// ) -> Result<(),AuthCraftError> {
     ///     sqlx::query!(
     ///         "DELETE FROM user_roles WHERE user_id = $1 AND role_name = $2",
     ///         user_id,
@@ -1443,7 +1447,7 @@ pub trait UserRepository: Send + Sync {
     ///     )
     ///     .execute(pool)
     ///     .await
-    ///     .map_err(|e| AuthError::DatabaseError(e.to_string()))?;
+    ///     .map_err(|e|AuthCraftError::DatabaseError(e.to_string()))?;
     ///
     ///     Ok(())
     /// }

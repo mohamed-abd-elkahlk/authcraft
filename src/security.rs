@@ -35,7 +35,7 @@ use rand::{Rng, distr::Alphanumeric, rng};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-use crate::error::AuthError;
+use crate::error::AuthCraftError;
 
 /// Struct for requesting a password reset.
 #[derive(Debug, Deserialize, Serialize)]
@@ -212,9 +212,9 @@ pub fn is_token_expired(expires_at: i64) -> bool {
 /// println!("Hashed password: {}", hashed_password);
 /// ```
 
-pub fn hash_password(password: &str) -> Result<String, AuthError> {
+pub fn hash_password(password: &str) -> Result<String, AuthCraftError> {
     let hashed_password =
-        hash(password, DEFAULT_COST).map_err(|e| AuthError::HashingError(e.to_string()))?;
+        hash(password, DEFAULT_COST).map_err(|e| AuthCraftError::HashingError(e.to_string()))?;
     Ok(hashed_password)
 }
 
@@ -239,8 +239,8 @@ pub fn hash_password(password: &str) -> Result<String, AuthError> {
 ///
 /// assert!(verify_password(password, &hashed).unwrap());
 /// ```
-pub fn verify_password(password: &str, hash: &str) -> Result<bool, AuthError> {
+pub fn verify_password(password: &str, hash: &str) -> Result<bool, AuthCraftError> {
     let verified =
-        verify(password, hash).map_err(|e| AuthError::InvalidCredentials(e.to_string()))?;
+        verify(password, hash).map_err(|e| AuthCraftError::InvalidCredentials(e.to_string()))?;
     Ok(verified)
 }

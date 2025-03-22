@@ -24,7 +24,7 @@ use chrono::{Duration, Utc};
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use serde::{Deserialize, Serialize};
 
-use super::*;
+use crate::error::AuthCraftError;
 
 /// Struct representing JWT claims, which includes standard fields and a custom payload.
 ///
@@ -103,7 +103,7 @@ pub fn issue_jwt<C: Serialize>(
     sub: String,
     payload: Option<C>,
     roles: Vec<String>,
-) -> Result<String, AuthError> {
+) -> Result<String, AuthCraftError> {
     let expiration = Utc::now()
         .checked_add_signed(Duration::days(config.expiration_days))
         .expect("Invalid timestamp")
@@ -122,7 +122,7 @@ pub fn issue_jwt<C: Serialize>(
         &claims,
         &EncodingKey::from_secret(config.secret.as_ref()),
     )
-    .map_err(|e| AuthError::CustomError(e.to_string()))?;
+    .map_err(|e| AuthCraftError::CustomError(e.to_string()))?;
     Ok(token)
 }
 

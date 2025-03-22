@@ -20,7 +20,7 @@
 //! println!("Is the TOTP code valid? {}", is_valid);
 //! ```
 
-use crate::error::AuthError;
+use crate::error::AuthCraftError;
 use rand::{Rng, RngCore, distr::Alphanumeric};
 use serde::{Deserialize, Serialize};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -54,7 +54,7 @@ impl MfaSettings {
     /// # Returns
     /// * `Ok(String)` - The generated Base32-encoded secret key.
     /// * `Err(AuthError)` - If secret generation fails.
-    pub fn generate_totp_secret() -> Result<String, AuthError> {
+    pub fn generate_totp_secret() -> Result<String, AuthCraftError> {
         let mut seed = [0u8; 20]; // 20 bytes = 160 bits
         rand::rng().fill_bytes(&mut seed);
 
@@ -65,7 +65,7 @@ impl MfaSettings {
             30, // Expiry (seconds)
             seed.to_vec(),
         )
-        .map_err(|e| AuthError::InternalServerError(e.to_string()))?;
+        .map_err(|e| AuthCraftError::InternalServerError(e.to_string()))?;
         Ok(totp.get_secret_base32())
     }
 
@@ -79,7 +79,7 @@ impl MfaSettings {
     /// * `Ok(true)` if the code is valid.
     /// * `Ok(false)` if the code is invalid.
     /// * `Err(AuthError)` if there is an internal error.
-    pub fn verify_totp_code(secret: &str, user_code: &str) -> Result<bool, AuthError> {
+    pub fn verify_totp_code(secret: &str, user_code: &str) -> Result<bool, AuthCraftError> {
         let secret_bytes =
             match base32::decode(base32::Alphabet::Rfc4648 { padding: false }, secret) {
                 Some(bytes) => bytes,
@@ -93,7 +93,7 @@ impl MfaSettings {
 
         let time = SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .map_err(|e| AuthError::InvalidOtp(e.to_string()))?
+            .map_err(|e| AuthCraftError::InvalidOtp(e.to_string()))?
             .as_secs();
 
         Ok(totp.check(user_code, time))
@@ -129,17 +129,17 @@ impl MfaSettings {
     /// # Returns
     /// * `Ok(true)` if the code is valid.
     /// * `Err(AuthError)` if the code is invalid or no backup codes are available.
-    pub fn verify_backup_code(&self, code: &str) -> Result<bool, AuthError> {
+    pub fn verify_backup_code(&self, code: &str) -> Result<bool, AuthCraftError> {
         if let Some(backup_codes) = &self.backup_codes {
             if backup_codes.contains(&code.to_string()) {
                 Ok(true)
             } else {
-                Err(AuthError::InvalidBackupCode(
+                Err(AuthCraftError::InvalidBackupCode(
                     "Invalid backup code".to_string(),
                 ))
             }
         } else {
-            Err(AuthError::InvalidBackupCode(
+            Err(AuthCraftError::InvalidBackupCode(
                 "No backup codes available".to_string(),
             ))
         }
@@ -153,18 +153,18 @@ impl MfaSettings {
     /// # Returns
     /// * `Ok(())` if the operation was successful.
     /// * `Err(AuthError)` if the code was not found or no backup codes are available.
-    pub fn mark_backup_code_as_used(&mut self, code: &str) -> Result<(), AuthError> {
+    pub fn mark_backup_code_as_used(&mut self, code: &str) -> Result<(), AuthCraftError> {
         if let Some(backup_codes) = &mut self.backup_codes {
             if let Some(index) = backup_codes.iter().position(|c| c == code) {
                 backup_codes.remove(index);
                 Ok(())
             } else {
-                Err(AuthError::InvalidBackupCode(
+                Err(AuthCraftError::InvalidBackupCode(
                     "Backup code not found".to_string(),
                 ))
             }
         } else {
-            Err(AuthError::InvalidBackupCode(
+            Err(AuthCraftError::InvalidBackupCode(
                 "No backup codes available".to_string(),
             ))
         }

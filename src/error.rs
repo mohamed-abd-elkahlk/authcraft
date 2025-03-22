@@ -2,7 +2,7 @@ use thiserror::Error;
 
 /// Authentication and Authorization Errors
 #[derive(Debug, Error, Clone, PartialEq)]
-pub enum AuthError {
+pub enum AuthCraftError {
     #[error("User not found: {0}")]
     UserNotFound(String),
 
@@ -50,6 +50,27 @@ pub enum AuthError {
 
     #[error("Too many active sessions: {0}")]
     TooManySessions(String),
+
+    #[error("Session already exists: {0}")]
+    SessionAlreadyExists(String),
+
+    #[error("Session creation failed: {0}")]
+    SessionCreationFailed(String),
+
+    #[error("Session termination failed: {0}")]
+    SessionTerminationFailed(String),
+
+    #[error("Session ID mismatch: {0}")]
+    SessionIdMismatch(String),
+
+    #[error("Account temporarily locked due to too many failed attempts: {0}")]
+    TemporaryLockout(String),
+
+    #[error("Permanent lockout: {0}")]
+    PermanentLockout(String),
+
+    #[error("Lockout due to security policy violation: {0}")]
+    LockoutPolicyViolation(String),
 
     #[error("Email is already taken: {0}")]
     EmailTaken(String),

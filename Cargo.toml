@@ -1,25 +1,59 @@
 [package]
 name = "authcraft"
-version = "0.6.2"
+version = "0.7.0"
 edition = "2024"
 
 [dependencies]
+# Core dependencies (always required)
 async-trait = "0.1.88"
-base32 = "0.5.1"
-bcrypt = "0.17.0"
-chrono = { version = "0.4.40", features = ["serde"] }
-jsonwebtoken = "9.3.1"
-lettre = { version = "0.11.5", features = [
+thiserror = "2.0.12"
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = "1.0.140"
+
+# JWT authentication dependencies
+jsonwebtoken = { version = "9.3.1", optional = true }
+chrono = { version = "0.4.40", features = ["serde"], optional = true }
+
+# Email dependencies
+lettre = { version = "0.11.5", optional = true, features = [
     "tokio1",
     "tokio1-native-tls",
     "builder",
     "smtp-transport",
 ] }
-qr2term = "0.3.3"
-rand = "0.9.0"
-serde = { version = "1.0.219", features = ["derive"] }
-serde_json = "1.0.140"
-sha2 = "0.10.8"
-tera = "1.20.0"
-thiserror = "2.0.12"
-totp-rs = "5.6.0"
+tera = { version = "1.20.0", optional = true }
+
+# MFA dependencies
+totp-rs = { version = "5.6.0", optional = true }
+base32 = { version = "0.5.1", optional = true }
+rand = { version = "0.9.0", optional = true }
+qr2term = { version = "0.3.3", optional = true }
+
+# Security dependencies
+bcrypt = { version = "0.17.0", optional = true }
+sha2 = { version = "0.10.8", optional = true }
+
+# Account Lockout & Rate Limiting dependencies
+redis = { version = "0.29.1", features = ["tokio-comp"], optional = true }
+[features]
+default = ["jwt", "security", "lockout"]
+
+# JWT authentication
+jwt = ["dep:jsonwebtoken", "dep:chrono"]
+
+# Email functionality with templates
+email = ["dep:lettre", "dep:tera"]
+
+# Multi-factor authentication
+mfa = ["email", "dep:totp-rs", "dep:base32", "dep:rand", "dep:qr2term"]
+
+# Password security and token management
+security = ["dep:bcrypt", "dep:sha2", "dep:rand"]
+
+# Role-based access control
+rbac = []
+
+# Account Lockout & Rate Limiting
+lockout = ["dep:redis"]
+# Full set of features
+full = ["jwt", "mfa", "email", "security", "rbac", "lockout"]

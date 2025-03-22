@@ -34,8 +34,9 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
 /// Defines possible user roles.
+#[cfg(feature = "rbac")]
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
-pub struct RBACRole {
+pub struct Role {
     /// The name of the role.
     pub name: String,
     /// Set of permissions associated with the role (e.g., ["read", "write", "delete"]).
@@ -43,7 +44,7 @@ pub struct RBACRole {
 }
 
 #[allow(dead_code)]
-impl RBACRole {
+impl Role {
     /// Creates a new role with a given name and permissions.
     ///
     /// # Arguments
@@ -225,7 +226,7 @@ impl RBACRole {
     /// role1.merge_permissions(&role2);
     /// assert!(role1.has_permission("view"));
     /// ```
-    pub fn merge_permissions(&mut self, other: &RBACRole) {
+    pub fn merge_permissions(&mut self, other: &Role) {
         self.permissions.extend(other.permissions.clone());
     }
 
@@ -247,7 +248,7 @@ impl RBACRole {
     }
 }
 
-impl fmt::Display for RBACRole {
+impl fmt::Display for Role {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,

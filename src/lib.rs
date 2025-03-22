@@ -149,67 +149,93 @@
 //! - [`rbac`](crate::rbac) - Role-based access control.
 //! - [`security`](crate::security) - Account security and password policies.
 //! - [`error`](crate::error) - Authentication error types.
-
+#[cfg(feature = "email")]
 pub mod email;
 #[allow(unused)]
 pub mod error;
+#[cfg(feature = "jwt")]
 pub mod jwt;
+#[cfg(feature = "lockout")]
+pub mod lockout;
+#[cfg(feature = "lockout")]
+pub use redis;
+#[cfg(feature = "mfa")]
 pub mod mfa;
+#[cfg(feature = "rbac")]
 pub mod rbac;
+
+#[cfg(feature = "security")]
 pub mod security;
 use async_trait::*;
 use chrono::{DateTime, Utc};
 use error::AuthError;
 use jwt::{Claims, JwtConfig};
+#[cfg(feature = "mfa")]
 use mfa::{MfaSettings, MfaType};
-use rbac::RBACRole;
+#[cfg(feature = "rbac")]
+use rbac::Role;
 use security::{RequestPasswordResetRequest, ResetPasswordRequest};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::{HashMap, HashSet},
     time::SystemTime,
 };
+#[cfg(feature = "email")]
 use tera::Value;
 
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
-pub struct AuthData<R = Role> {
+pub struct AuthData {
     /// Unique identifier for the user.
     pub id: String,
     /// Username of the user.
     pub username: String,
     /// Indicates whether the user's email is verified.
+    #[cfg(feature = "email")]
     pub is_verified: bool,
     /// User's email address.
     pub email: String,
     /// Hashed password.
     pub password_hash: String,
     /// User role (Admin, User, Guest).
-    pub role: R,
+    pub role: Role,
     /// Indicates if MFA is enabled for the user.
+    #[cfg(feature = "mfa")]
     pub mfa_enabled: bool,
     /// Type of MFA used.
+    #[cfg(feature = "mfa")]
     pub mfa_type: Option<MfaType>,
     /// Secret for TOTP-based MFA.
+    #[cfg(feature = "mfa")]
     pub totp_secret: Option<String>,
     /// Last generated email OTP.
+    #[cfg(feature = "mfa")]
     pub email_otp: Option<String>,
     /// Backup recovery codes for MFA.
+    #[cfg(feature = "mfa")]
     pub backup_codes: Option<Vec<String>>,
     /// Used backup codes.
+    #[cfg(feature = "mfa")]
     pub mfa_recovery_codes_used: Option<Vec<String>>,
     /// Password reset token.
+    #[cfg(feature = "email")]
     pub password_reset_token: Option<String>,
     /// Expiry time of the password reset token.
+    #[cfg(feature = "email")]
     pub password_reset_expiry: Option<DateTime<Utc>>,
     /// Email verification token.
+    #[cfg(feature = "email")]
     pub email_verification_token: Option<String>,
     /// Expiry time of the email verification token.
+    #[cfg(feature = "email")]
     pub email_verification_expiry: Option<DateTime<Utc>>,
     /// Timestamp of the last login.
+    #[cfg(feature = "lockout")]
     pub last_login_at: Option<DateTime<Utc>>,
     /// Number of failed login attempts.
+    #[cfg(feature = "lockout")]
     pub failed_login_attempts: u32,
     /// Account lockout expiration time.
+    #[cfg(feature = "lockout")]
     pub account_locked_until: Option<DateTime<Utc>>,
     /// Refresh token.
     pub refresh_token: Option<String>,
@@ -222,6 +248,7 @@ pub struct AuthData<R = Role> {
 }
 
 /// Defines possible user roles.
+#[cfg(not(feature = "rbac"))]
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub enum Role {
     Admin,
@@ -1452,7 +1479,7 @@ pub trait UserRepository: Send + Sync {
     ///     Ok(())
     /// }
     /// ```
-    async fn assign_role_to_user(&self, user_id: &str, role: RBACRole);
+    async fn assign_role_to_user(&self, user_id: &str, role: Role);
 
     /// Removes a role from a user.
     ///
@@ -1499,7 +1526,7 @@ pub trait UserRepository: Send + Sync {
     ///
     /// # Returns
     /// * A vector containing the user's assigned roles.
-    async fn get_user_roles(&self, user_id: &str) -> Vec<RBACRole>;
+    async fn get_user_roles(&self, user_id: &str) -> Vec<Role>;
 
     /// Retrieves all permissions assigned to a user (merged from roles).
     ///
@@ -1511,6 +1538,7 @@ pub trait UserRepository: Send + Sync {
     async fn get_user_permissions(&self, user_id: &str) -> HashSet<String>;
 }
 
+#[cfg(not(feature = "rbac"))]
 impl From<Role> for String {
     fn from(value: Role) -> Self {
         match value {
@@ -1521,6 +1549,7 @@ impl From<Role> for String {
     }
 }
 
+#[cfg(not(feature = "rbac"))]
 impl From<String> for Role {
     fn from(value: String) -> Self {
         match value.as_str() {

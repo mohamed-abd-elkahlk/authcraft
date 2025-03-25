@@ -53,6 +53,9 @@
 //! }
 //! ```
 
+use std::env;
+
+use dotenv::dotenv;
 use lettre::{
     AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
     message::{MultiPart, SinglePart, header},
@@ -74,6 +77,23 @@ pub struct EmailConfig {
     pub sender_email: String,
     /// Sender's display name.
     pub sender_name: String,
+}
+
+impl EmailConfig {
+    pub fn from_env() -> Result<Self, String> {
+        dotenv().ok(); // Load .env file if present
+
+        Ok(Self {
+            smtp_server: env::var("SMTP_SERVER").map_err(|_| "Missing SMTP_SERVER".to_string())?,
+            smtp_username: env::var("SMTP_USERNAME")
+                .map_err(|_| "Missing SMTP_USERNAME".to_string())?,
+            smtp_password: env::var("SMTP_PASSWORD")
+                .map_err(|_| "Missing SMTP_PASSWORD".to_string())?,
+            sender_email: env::var("SENDER_EMAIL")
+                .map_err(|_| "Missing SENDER_EMAIL".to_string())?,
+            sender_name: env::var("SENDER_NAME").map_err(|_| "Missing SENDER_NAME".to_string())?,
+        })
+    }
 }
 
 /// Email service for sending templated and custom emails.
@@ -110,7 +130,7 @@ impl EmailService {
         config: EmailConfig,
         templates_dir: &str,
     ) -> Result<Self, Box<dyn std::error::Error>> {
-        let mut templates = Tera::new(&format!("{}/**/*", templates_dir))?;
+        let mut templates = Tera::new(&format!("{}/{}", templates_dir, "*.html"))?; // Ensure only `.html` files are loaded
         templates.autoescape_on(vec!["html", "htm", "xml"]);
         templates.register_filter("json_encode", move |value: &tera::Value, _: &_| {
             Ok(serde_json::to_string(&value).unwrap_or_default().into())
@@ -200,6 +220,7 @@ impl EmailService {
         recipient_email: &str,
         recipient_name: &str,
         verification_link: &str,
+        template_name: &str,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let data = serde_json::json!({
             "name": recipient_name,
@@ -211,7 +232,7 @@ impl EmailService {
             recipient_email,
             recipient_name,
             "Verify Your Email Address",
-            "verification_email",
+            template_name,
             &data,
         )
         .await

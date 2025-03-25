@@ -22,7 +22,7 @@ lettre = { version = "0.11.5", optional = true, features = [
     "smtp-transport",
 ] }
 tera = { version = "1.20.0", optional = true }
-
+dotenv = { version = "0.15.0", optional = true }
 # MFA dependencies
 totp-rs = { version = "5.6.0", optional = true }
 base32 = { version = "0.5.1", optional = true }
@@ -35,6 +35,7 @@ sha2 = { version = "0.10.8", optional = true }
 
 # Account Lockout & Rate Limiting dependencies
 redis = { version = "0.29.1", features = ["tokio-comp"], optional = true }
+mockall = "0.13.1"
 [features]
 default = ["full"]
 
@@ -42,7 +43,7 @@ default = ["full"]
 jwt = ["dep:jsonwebtoken", "dep:chrono"]
 
 # Email functionality with templates
-email = ["dep:lettre", "dep:tera"]
+email = ["dep:lettre", "dep:tera", "dep:dotenv"]
 
 # Multi-factor authentication
 mfa = ["email", "dep:totp-rs", "dep:base32", "dep:rand", "dep:qr2term"]
@@ -60,3 +61,14 @@ lockout = ["dep:redis"]
 session = ["dep:redis", "jwt"]
 # Full set of features
 full = ["jwt", "mfa", "email", "security", "rbac", "lockout", "session"]
+
+[dev-dependencies]
+tokio = { version = "1.44.1", features = ["full"] }
+sqlx = { version = "0.8.3", features = [
+    "runtime-tokio",
+    "postgres",
+    "tls-rustls",
+    "uuid",
+    "time",
+] }
+regex = "1.11.1"

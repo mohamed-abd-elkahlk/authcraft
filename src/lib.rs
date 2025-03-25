@@ -82,8 +82,10 @@ pub mod sessions;
 #[cfg(feature = "security")]
 pub mod security;
 use async_trait::*;
+#[cfg(feature = "email")]
 use chrono::{DateTime, Utc};
 use error::AuthCraftError;
+#[cfg(feature = "jwt")]
 use jwt::{Claims, JwtConfig};
 #[cfg(feature = "mfa")]
 use mfa::{MfaSettings, MfaType};
@@ -93,9 +95,10 @@ use rbac::Role;
 use security::{RequestPasswordResetRequest, ResetPasswordRequest};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::collections::HashMap;
 #[cfg(feature = "rbac")]
 use std::collections::HashSet;
-use std::{collections::HashMap, time::SystemTime};
+use std::time::SystemTime;
 
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub struct AuthData {

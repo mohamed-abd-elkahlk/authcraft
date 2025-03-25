@@ -77,6 +77,32 @@ impl RedisLockout {
             lockout_duration,
         }
     }
+    /// Creates a new `RedisLockout` instance from environment variables.
+    ///
+    /// Expected environment variables:
+    /// - REDIS_URL: Redis connection string
+    /// - MAX_ATTEMPTS: Maximum number of failed attempts before lockout
+    /// - LOCKOUT_DURATION: Duration in seconds before attempts reset
+    ///
+    /// # Example
+    /// ```
+    /// let lockout = RedisLockout::from_env().expect("Failed to init lockout");
+    /// ```
+    pub fn from_env() -> Result<Self, String> {
+        let redis_url = std::env::var("REDIS_URL").map_err(|_| "REDIS_URL not set")?;
+
+        let max_attempts = std::env::var("MAX_ATTEMPTS")
+            .map_err(|_| "MAX_ATTEMPTS not set")?
+            .parse::<i32>()
+            .map_err(|_| "Invalid MAX_ATTEMPTS value")?;
+
+        let lockout_duration = std::env::var("LOCKOUT_DURATION")
+            .map_err(|_| "LOCKOUT_DURATION not set")?
+            .parse::<usize>()
+            .map_err(|_| "Invalid LOCKOUT_DURATION value")?;
+
+        Ok(Self::new(&redis_url, max_attempts, lockout_duration))
+    }
 }
 
 #[async_trait]

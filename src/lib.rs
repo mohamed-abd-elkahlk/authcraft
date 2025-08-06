@@ -1411,7 +1411,7 @@ pub trait UserRepository: Send + Sync {
     /// async fn assign_role_to_user(
     ///     &self,
     ///     user_id: &str,
-    ///     role: RBACRole,
+    ///     role: Role,
     ///     pool: &PgPool
     /// ) -> Result<(),AuthCraftError> {
     ///     sqlx::query!(

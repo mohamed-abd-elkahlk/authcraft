@@ -1,18 +1,18 @@
 //! Role-Based Access Control (RBAC) module.
-//! This module defines the `RBACRole` struct, which represents user roles
+//! This module defines the `Role` struct, which represents user roles
 //! with associated permissions.
 //!
 //! ## Example Usage
 //!
 //! ```
 //! use std::collections::HashSet;
-//! use authcraft::rbac::RBACRole;
+//! use authcraft::rbac::Role;
 //!
 //! let mut permissions = HashSet::new();
 //! permissions.insert("read".to_string());
 //! permissions.insert("write".to_string());
 //!
-//! let mut role = RBACRole::define_role("Admin".to_string(), permissions);
+//! let mut role = Role::define_role("Admin".to_string(), permissions);
 //!
 //! // Check if the role has a permission
 //! assert!(role.has_permission("read"));
@@ -54,18 +54,18 @@ impl Role {
     ///
     /// # Returns
     ///
-    /// Returns a new `RBACRole` instance.
+    /// Returns a new `Role` instance.
     ///
     /// # Example
     ///
     /// ```
     /// use std::collections::HashSet;
-    /// use authcraft::rbac::RBACRole;
+    /// use authcraft::rbac::Role;
     ///
     /// let mut permissions = HashSet::new();
     /// permissions.insert("read".to_string());
     ///
-    /// let role = RBACRole::define_role("User".to_string(), permissions);
+    /// let role = Role::define_role("User".to_string(), permissions);
     ///
     /// assert!(role.has_permission("read"));
     /// ```
@@ -87,12 +87,12 @@ impl Role {
     ///
     /// ```
     /// use std::collections::HashSet;
-    /// use authcraft::rbac::RBACRole;
+    /// use authcraft::rbac::Role;
     ///
     /// let mut permissions = HashSet::new();
     /// permissions.insert("write".to_string());
     ///
-    /// let role = RBACRole::define_role("Editor".to_string(), permissions);
+    /// let role = Role::define_role("Editor".to_string(), permissions);
     ///
     /// assert!(role.has_permission("write"));
     /// assert!(!role.has_permission("delete"));
@@ -111,10 +111,10 @@ impl Role {
     ///
     /// ```
     /// use std::collections::HashSet;
-    /// use authcraft::rbac::RBACRole;
+    /// use authcraft::rbac::Role;
     ///
     /// let mut permissions = HashSet::new();
-    /// let mut role = RBACRole::define_role("Manager".to_string(), permissions);
+    /// let mut role = Role::define_role("Manager".to_string(), permissions);
     ///
     /// role.add_permission("approve".to_string());
     /// assert!(role.has_permission("approve"));
@@ -133,12 +133,12 @@ impl Role {
     ///
     /// ```
     /// use std::collections::HashSet;
-    /// use authcraft::rbac::RBACRole;
+    /// use authcraft::rbac::Role;
     ///
     /// let mut permissions = HashSet::new();
     /// permissions.insert("delete".to_string());
     ///
-    /// let mut role = RBACRole::define_role("Admin".to_string(), permissions);
+    /// let mut role = Role::define_role("Admin".to_string(), permissions);
     /// role.remove_permission("delete");
     ///
     /// assert!(!role.has_permission("delete"));
@@ -161,13 +161,13 @@ impl Role {
     ///
     /// ```
     /// use std::collections::HashSet;
-    /// use authcraft::rbac::RBACRole;
+    /// use authcraft::rbac::Role;
     ///
     /// let mut permissions = HashSet::new();
     /// permissions.insert("read".to_string());
     /// permissions.insert("write".to_string());
     ///
-    /// let role = RBACRole::define_role("User".to_string(), permissions);
+    /// let role = Role::define_role("User".to_string(), permissions);
     ///
     /// assert!(role.has_all_permissions(&["read".to_string(), "write".to_string()]));
     /// assert!(!role.has_all_permissions(&["read".to_string(), "delete".to_string()]));
@@ -192,12 +192,12 @@ impl Role {
     ///
     /// ```
     /// use std::collections::HashSet;
-    /// use authcraft::rbac::RBACRole;
+    /// use authcraft::rbac::Role;
     ///
     /// let mut permissions = HashSet::new();
     /// permissions.insert("edit".to_string());
     ///
-    /// let role = RBACRole::define_role("Editor".to_string(), permissions);
+    /// let role = Role::define_role("Editor".to_string(), permissions);
     ///
     /// assert!(role.has_any_permission(&["view".to_string(), "edit".to_string()]));
     /// assert!(!role.has_any_permission(&["delete".to_string()]));
@@ -218,10 +218,10 @@ impl Role {
     ///
     /// ```
     /// use std::collections::HashSet;
-    /// use authcraft::rbac::RBACRole;
+    /// use authcraft::rbac::Role;
     ///
-    /// let mut role1 = RBACRole::define_role("Editor".to_string(), HashSet::from(["edit".to_string()]));
-    /// let role2 = RBACRole::define_role("Viewer".to_string(), HashSet::from(["view".to_string()]));
+    /// let mut role1 = Role::define_role("Editor".to_string(), HashSet::from(["edit".to_string()]));
+    /// let role2 = Role::define_role("Viewer".to_string(), HashSet::from(["view".to_string()]));
     ///
     /// role1.merge_permissions(&role2);
     /// assert!(role1.has_permission("view"));
@@ -236,9 +236,9 @@ impl Role {
     ///
     /// ```
     /// use std::collections::HashSet;
-    /// use authcraft::rbac::RBACRole;
+    /// use authcraft::rbac::Role;
     ///
-    /// let mut role = RBACRole::define_role("Admin".to_string(), HashSet::from(["delete".to_string()]));
+    /// let mut role = Role::define_role("Admin".to_string(), HashSet::from(["delete".to_string()]));
     /// role.clear_permissions();
     ///
     /// assert!(role.permissions.is_empty());

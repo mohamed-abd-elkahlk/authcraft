@@ -115,16 +115,21 @@ impl EmailService {
     /// # Returns
     /// - `Result<Self, Box<dyn std::error::Error>>`: The initialized `EmailService` or an error.
     ///
-    /// # Example
     /// ```rust
-    /// let config = EmailConfig {
-    ///     smtp_server: "smtp.example.com".to_string(),
-    ///     smtp_username: "user@example.com".to_string(),
-    ///     smtp_password: "password".to_string(),
-    ///     sender_email: "noreply@example.com".to_string(),
-    ///     sender_name: "Example Corp".to_string(),
-    /// };
-    /// let email_service = EmailService::new(config, "templates")?;
+    /// use authcraft::email::{EmailConfig, EmailService};
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    ///     let config = EmailConfig {
+    ///         smtp_server: "smtp.example.com".to_string(),
+    ///         smtp_username: "user@example.com".to_string(),
+    ///         smtp_password: "password".to_string(),
+    ///         sender_email: "noreply@example.com".to_string(),
+    ///         sender_name: "Example Corp".to_string(),
+    ///     };
+    ///     let email_service = EmailService::new(config, "templates")?;
+    ///     Ok(())
+    /// }
     /// ```
     pub fn new(
         config: EmailConfig,
@@ -152,25 +157,38 @@ impl EmailService {
     /// Sends a templated email.
     ///
     /// # Arguments
-    /// - `recipient_email`: Email address of the recipient.
-    /// - `recipient_name`: Name of the recipient.
-    /// - `subject`: Email subject.
-    /// - `template_name`: Name of the template (without extension).
-    /// - `template_data`: Data to render the template.
+    /// - `recipient_email` - Email address of the recipient.
+    /// - `recipient_name` - Name of the recipient.
+    /// - `subject` - Email subject.
+    /// - `template_name` - Name of the template (without extension).
+    /// - `template_data` - Data to render the template.
     ///
     /// # Returns
-    /// - `Result<(), Box<dyn std::error::Error>>`: Success or error.
+    /// - `Result<(), Box<dyn std::error::Error>>` - Success or error.
     ///
     /// # Example
     /// ```rust
-    /// email_service.send_templated_email(
-    ///     "recipient@example.com",
-    ///     "Recipient Name",
-    ///     "Welcome!",
-    ///     "welcome_email",
-    ///     &serde_json::json!({ "name": "Recipient Name" }),
-    /// ).await?;
+    /// use authcraft::email::{EmailConfig, EmailService};
+    /// use serde_json::json;
+    /// use tokio;
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    ///    let config = EmailConfig::from_env().unwrap();
+    ///     let email_service = EmailService::new(config, "templates")?;
+    ///
+    ///     email_service.send_templated_email(
+    ///         "recipient@example.com",
+    ///         "Recipient Name",
+    ///         "Welcome!",
+    ///         "welcome_email",
+    ///         &json!({ "name": "Recipient Name" }),
+    ///     ).await?;
+    ///
+    ///     Ok(())
+    /// }
     /// ```
+
     pub async fn send_templated_email<T: Serialize>(
         &self,
         recipient_email: &str,
@@ -203,18 +221,33 @@ impl EmailService {
     /// - `recipient_email`: Email address of the recipient.
     /// - `recipient_name`: Name of the recipient.
     /// - `verification_link`: Link for email verification.
+    /// - `template_name`: Name of the email template (without extension).
     ///
     /// # Returns
     /// - `Result<(), Box<dyn std::error::Error>>`: Success or error.
     ///
     /// # Example
     /// ```rust
-    /// email_service.send_verification_email(
-    ///     "recipient@example.com",
-    ///     "Recipient Name",
-    ///     "https://example.com/verify?token=abc123",
-    /// ).await?;
+    /// use authcraft::email::{EmailConfig, EmailService};
+    /// use serde_json::json;
+    /// use tokio;
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    ///     let config = EmailConfig::from_env().unwrap();
+    ///     let email_service = EmailService::new(config, "templates")?;
+    ///
+    ///     email_service.send_verification_email(
+    ///         "recipient@example.com",
+    ///         "Recipient Name",
+    ///         "https://example.com/verify?token=abc123",
+    ///         "verification_email",
+    ///     ).await?;
+    ///
+    ///     Ok(())
+    /// }
     /// ```
+
     pub async fn send_verification_email(
         &self,
         recipient_email: &str,
@@ -252,14 +285,26 @@ impl EmailService {
     ///
     /// # Example
     /// ```rust
-    /// email_service.send_custom_email(
-    ///     "recipient@example.com",
-    ///     "Recipient Name",
-    ///     "Hello!",
-    ///     "This is a plain text email.",
-    ///     "<p>This is an <strong>HTML</strong> email.</p>",
-    /// ).await?;
+    /// use authcraft::email::{EmailConfig, EmailService};
+    /// use tokio;
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    ///     let config = EmailConfig::from_env().unwrap();
+    ///     let email_service = EmailService::new(config, "templates")?;
+    ///
+    ///     email_service.send_custom_email(
+    ///         "recipient@example.com",
+    ///         "Recipient Name",
+    ///         "Hello!",
+    ///         "This is a plain text email.",
+    ///         "<p>This is an <strong>HTML</strong> email.</p>",
+    ///     ).await?;
+    ///
+    ///     Ok(())
+    /// }
     /// ```
+
     pub async fn send_custom_email(
         &self,
         recipient_email: &str,

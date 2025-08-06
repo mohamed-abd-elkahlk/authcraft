@@ -64,7 +64,7 @@ impl JwtConfig {
     /// # Example
     ///
     /// ```
-    /// use autcarft::jwt::JwtConfig;
+    /// use authcraft::jwt::JwtConfig;
     ///
     /// let config = JwtConfig::new("super_secret_key".to_string(), 7);
     /// ```
@@ -140,7 +140,7 @@ pub fn issue_jwt<C: Serialize>(
 /// # Example
 ///
 /// ```
-/// use authcarft::jwt::{JwtConfig, issue_jwt, verify_jwt};
+/// use authcraft::jwt::{JwtConfig, issue_jwt, verify_jwt};
 ///
 /// let config = JwtConfig::new("my_secret".to_string(), 7);
 /// let token = issue_jwt(config.clone(), "user123".to_string(), None::<()>, vec!["user".to_string()]).unwrap();

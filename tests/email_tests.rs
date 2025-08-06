@@ -6,9 +6,7 @@ pub mod tests {
     #[tokio::test]
     async fn send_email_test() {
         let email_config = EmailConfig::from_env().unwrap();
-        let dir = std::env::current_dir().unwrap().join("tests/templates");
-        dbg!(&dir); // Prints the value to stdout
-        let email_service = EmailService::new(email_config.clone(), dir.to_str().unwrap()).unwrap();
+        let email_service = EmailService::new(email_config.clone(), "templates").unwrap();
         let send = email_service
             .send_verification_email(
                 &email_config.smtp_username,

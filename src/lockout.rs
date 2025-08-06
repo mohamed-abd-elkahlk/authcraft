@@ -11,7 +11,7 @@
 //!
 //! ## Example Usage
 //! ```rust
-//! use my_crate::lockout::{LockoutStorage, RedisLockout};
+//! use authcraft::lockout::{LockoutStorage, RedisLockout};
 //!
 //! #[tokio::main]
 //! async fn main() {
@@ -66,7 +66,8 @@ impl RedisLockout {
     /// * `lockout_duration` - The time (in seconds) before failed attempts reset.
     ///
     /// # Example
-    /// ```
+    /// ```rust
+    /// use authcraft::lockout::RedisLockout;
     /// let lockout = RedisLockout::new("redis://127.0.0.1/", 5, 300);
     /// ```
     pub fn new(redis_url: &str, max_attempts: i32, lockout_duration: usize) -> Self {
@@ -85,10 +86,12 @@ impl RedisLockout {
     /// - LOCKOUT_DURATION: Duration in seconds before attempts reset
     ///
     /// # Example
-    /// ```
+    /// ```rust
+    /// use authcraft::lockout::RedisLockout;
     /// let lockout = RedisLockout::from_env().expect("Failed to init lockout");
     /// ```
     pub fn from_env() -> Result<Self, String> {
+        dotenv::dotenv().ok();
         let redis_url = std::env::var("REDIS_URL").map_err(|_| "REDIS_URL not set")?;
 
         let max_attempts = std::env::var("MAX_ATTEMPTS")
@@ -104,9 +107,21 @@ impl RedisLockout {
         Ok(Self::new(&redis_url, max_attempts, lockout_duration))
     }
 }
-
 #[async_trait]
 impl LockoutStorage for RedisLockout {
+    /// Records a failed authentication attempt in Redis.
+    ///
+    /// # Arguments
+    /// - `key`: A unique key identifying the user (e.g., email or IP address).
+    ///
+    /// # Returns
+    /// - `Ok(())` if the failure is recorded successfully.
+    /// - `Err(RedisError)` if there is an issue with Redis.
+    ///
+    /// # Behavior
+    /// - Increments the failure count.
+    /// - If it's the first failure, sets an expiration time on the key.
+    ///
     async fn record_failure(&self, key: &str) -> Result<(), RedisError> {
         let mut conn = self.client.get_multiplexed_async_connection().await?;
         let count: i32 = conn.incr(key, 1).await?;
@@ -116,12 +131,30 @@ impl LockoutStorage for RedisLockout {
         Ok(())
     }
 
+    /// Checks if a user is locked out due to excessive failed attempts.
+    ///
+    /// # Arguments
+    /// - `key`: A unique key identifying the user.
+    ///
+    /// # Returns
+    /// - `Ok(true)` if the user is locked out.
+    /// - `Ok(false)` if the user is not locked out.
+    /// - `Err(RedisError)` if there is an issue with Redis.
+
     async fn is_locked_out(&self, key: &str) -> Result<bool, RedisError> {
         let mut conn = self.client.get_multiplexed_async_connection().await?;
         let count: Option<i32> = conn.get(key).await.ok(); // Handle missing key gracefully
         Ok(count.unwrap_or(0) >= self.max_attempts)
     }
 
+    /// Resets the failed attempt count for a user.
+    ///
+    /// # Arguments
+    /// - `key`: A unique key identifying the user.
+    ///
+    /// # Returns
+    /// - `Ok(())` if the attempts are reset successfully.
+    /// - `Err(RedisError)` if there is an issue with Redis.
     async fn reset_attempts(&self, key: &str) -> Result<(), RedisError> {
         let mut conn = self.client.get_multiplexed_async_connection().await?;
         let _: () = conn.del(key).await?;
